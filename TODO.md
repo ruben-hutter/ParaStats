@@ -1,5 +1,7 @@
 # TODO
 
+[] Check number of parameters
+
 ## To improve project
 
 [] Read all files from Data directory
