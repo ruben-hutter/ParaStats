@@ -1,3 +1,4 @@
+from curses.ascii import alt
 import numpy as np
 import sys
 from datetime import datetime
@@ -5,6 +6,11 @@ from datetime import datetime
 # vario data
 flight_name = ""
 vario_data = []
+sens_alt = []
+gps_alt = []
+sens_gps_mean = []
+alt_diff = []
+flight_duration = 0
 
 def parse_vario_data(file):
 	# open file
@@ -32,23 +38,7 @@ def convert_time(time):
 	time = datetime.strptime(":".join(time[i:i+2] for i in range(0, len(time), 2)), "%H:%M:%S")
 	return time
 
-def main():
-	# parse data
-	file = sys.argv[1]
-	parse_vario_data(file)
-	# array to np.array
-	global vario_data
-	vario_data = np.array(vario_data)
-	# calculate mean value of sens and gps data for every entry
-	sens_gps_mean = np.array([np.mean([vario_data[n][3], vario_data[n][4]]) for n in range(len(vario_data))])
-	# calculate diff of altitude in m/s
-	alt_diff = np.array(np.diff(sens_gps_mean))
-	# calculate flight duration
-	takeoff_time = convert_time(vario_data[0][0])
-	landing_time = convert_time(vario_data[vario_data.shape[0]-1][0])
-	flight_duration = landing_time - takeoff_time
-
-	# PRINT STATS
+def print_flight_stats():
 	divider = ''.join(['=' for _ in range(50)])
 	print(divider)
 	print(f"Flight name: {flight_name}")
@@ -59,6 +49,37 @@ def main():
 	print(f"Max climb:\t\t{np.max(alt_diff)} m/s")
 	print(f"Max sink:\t\t{np.min(alt_diff)} m/s")
 	print(divider)
+
+def main():
+	global vario_data
+	global sens_alt
+	global gps_alt
+	global sens_gps_mean
+	global alt_diff
+	global flight_duration
+	# parse data
+	file = sys.argv[1]
+	parse_vario_data(file)
+	# array to np.array
+	vario_data = np.array(vario_data)
+	# calculate mean value of sens and gps data for every entry
+	for n in range(vario_data.shape[0]-1):
+		sens_alt.append(vario_data[n][3])
+		gps_alt.append(vario_data[n][4])
+		sens_gps_mean.append(np.mean([sens_alt[-1], gps_alt[-1]]))
+	sens_alt = np.array(sens_alt)
+	gps_alt = np.array(gps_alt)
+	sens_gps_mean = np.array(sens_gps_mean)
+	# calculate diff of altitude in m/s
+	alt_diff = np.array(np.diff(sens_gps_mean))
+	# calculate flight duration
+	takeoff_time = convert_time(vario_data[0][0])
+	landing_time = convert_time(vario_data[vario_data.shape[0]-1][0])
+	flight_duration = landing_time - takeoff_time
+
+	# print
+	print_flight_stats()
+
 
 if __name__ == "__main__":
 	main()
