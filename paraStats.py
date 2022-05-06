@@ -1,4 +1,3 @@
-from curses.ascii import alt
 import numpy as np
 import sys
 from datetime import datetime
@@ -50,6 +49,16 @@ def print_flight_stats():
 	print(f"Max sink:\t\t{np.min(alt_diff)} m/s")
 	print(divider)
 
+def extract_altitudes():
+	for n in range(vario_data.shape[0]-1):
+		sens_alt.append(vario_data[n][3])
+		gps_alt.append(vario_data[n][4])
+		# calculate mean alt
+		calculate_mean_alt(np.mean([sens_alt[-1], gps_alt[-1]]))
+
+def calculate_mean_alt(mean_val):
+		sens_gps_mean.append(mean_val)
+
 def main():
 	global vario_data
 	global sens_alt
@@ -62,11 +71,8 @@ def main():
 	parse_vario_data(file)
 	# array to np.array
 	vario_data = np.array(vario_data)
-	# calculate mean value of sens and gps data for every entry
-	for n in range(vario_data.shape[0]-1):
-		sens_alt.append(vario_data[n][3])
-		gps_alt.append(vario_data[n][4])
-		sens_gps_mean.append(np.mean([sens_alt[-1], gps_alt[-1]]))
+	# extract altitudes and calculate mean
+	extract_altitudes()
 	sens_alt = np.array(sens_alt)
 	gps_alt = np.array(gps_alt)
 	sens_gps_mean = np.array(sens_gps_mean)
@@ -79,7 +85,6 @@ def main():
 
 	# print
 	print_flight_stats()
-
 
 if __name__ == "__main__":
 	main()
