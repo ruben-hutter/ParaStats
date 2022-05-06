@@ -14,7 +14,7 @@ class SingleFlight:
         self.takeoff_time = 0
         self.landing_time = 0
         self.flight_duration = 0
-        # initialize object
+        # initialize obj
         self.initialize_flight(file)
 
     def initialize_flight(self, file):
@@ -71,7 +71,7 @@ class SingleFlight:
         )
         return time
 
-    def print_flight_stats(self):
+    def print_stats(self):
         divider = "".join(["=" for _ in range(50)])
         print(divider)
         print(f"Flight name: {flight_name}")
