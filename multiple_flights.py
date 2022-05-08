@@ -8,11 +8,10 @@ class MultipleFlights:
         self.flights = []
         # initialize obj
         self.initialize_flights(directory_path)
-        pass
 
     def initialize_flights(self, directory_path):
         # iterate over directory files
-        for filename in os.listdir(directory_path):
+        for filename in sorted(os.listdir(directory_path)):
             # create single flight obj for every file
             self.flights.append(SingleFlight(os.path.join(directory_path, filename)))
 

@@ -2,7 +2,11 @@ import numpy as np
 from datetime import datetime
 
 
-class SingleFlight:
+class Constants:
+    INTEGRATION_TIME = 15
+
+
+class SingleFlight(Constants):
     def __init__(self, file):
         # vario data
         self.flight_name = ""
@@ -11,6 +15,7 @@ class SingleFlight:
         self.gps_alt = []
         self.sens_gps_mean = []
         self.alt_diff = []
+        self.integrated_alt_diff = []
         self.takeoff_time = 0
         self.landing_time = 0
         self.flight_duration = 0
@@ -36,6 +41,8 @@ class SingleFlight:
         )
         self.flight_duration = self.landing_time - self.takeoff_time
 
+        self.calculate_integrated_alt_diff()
+
     def parse_vario_data(self, file):
         # open file
         with open(file) as data:
@@ -58,8 +65,7 @@ class SingleFlight:
                     )
                     self.vario_data.append(line)
                 elif line.startswith("HFSITSITE"):
-                    global flight_name
-                    flight_name = line[10:]
+                    self.flight_name = line[10:]
 
     # convert time to correct format
     def convert_time(self, time):
@@ -74,17 +80,19 @@ class SingleFlight:
     def print_stats(self):
         divider = "".join(["=" for _ in range(50)])
         print(divider)
-        print(f"Flight name: {flight_name}")
+        print(f"Flight name: {self.flight_name}")
         print(f"Flight duration:\t{self.flight_duration}")
         print(f"Takeoff altitude:\t{self.sens_gps_mean[0]} m")
         print(f"Landing altitude:\t{self.sens_gps_mean[-1]} m")
         print(f"Max altitude:\t\t{np.max(self.sens_gps_mean)} m")
-        print(f"Max climb:\t\t{np.max(self.alt_diff)} m/s")
-        print(f"Max sink:\t\t{np.min(self.alt_diff)} m/s")
+        print(f"Max climb rate:\t\t{np.max(self.alt_diff)} m/s")
+        print(f"Max sink rate:\t\t{np.min(self.alt_diff)} m/s")
+        print(f"Max integrated climb ({Constants.INTEGRATION_TIME} s): {np.max(self.integrated_alt_diff):.1f} m/s")
+        print(f"Max integrated sink ({Constants.INTEGRATION_TIME} s): {np.min(self.integrated_alt_diff):.1f} m/s")
         print(divider)
 
     def extract_altitudes(self):
-        for n in range(self.vario_data.shape[0] - 1):
+        for n in range(self.vario_data.shape[0]):
             self.sens_alt.append(self.vario_data[n][3])
             self.gps_alt.append(self.vario_data[n][4])
             # calculate mean alt
@@ -92,3 +100,17 @@ class SingleFlight:
 
     def calculate_mean_alt(self, mean_val):
         self.sens_gps_mean.append(mean_val)
+
+    def calculate_integrated_alt_diff(self):
+        self.integrated_alt_diff = np.array(
+            [
+                (
+                    self.sens_gps_mean[n + Constants.INTEGRATION_TIME - 1]
+                    - self.sens_gps_mean[n]
+                )
+                / Constants.INTEGRATION_TIME
+                for n in range(
+                    0, self.sens_gps_mean.shape[0] - Constants.INTEGRATION_TIME
+                )
+            ]
+        )
