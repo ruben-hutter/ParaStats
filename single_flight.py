@@ -6,10 +6,23 @@ class Constants:
     INTEGRATION_TIME = 15
 
 
+def convert_time(time):
+    time = str(time)
+    if len(time) < 6:
+        time = "0" + time
+    time = datetime.strptime(
+        ":".join(time[i : i + 2] for i in range(0, len(time), 2)), "%H:%M:%S"
+    )
+    return time
+
+def convert_date(date):
+    return date
+
 class SingleFlight(Constants):
     def __init__(self, file):
         # vario data
         self.flight_name = ""
+        self.flight_date = ""
         self.vario_data = []
         self.sens_alt = []
         self.gps_alt = []
@@ -23,6 +36,7 @@ class SingleFlight(Constants):
         self.initialize_flight(file)
 
     def initialize_flight(self, file):
+        # parse vario data
         self.parse_vario_data(file)
         # array to np.array
         self.vario_data = np.array(self.vario_data)
@@ -35,8 +49,8 @@ class SingleFlight(Constants):
         # calculate diff of altitude in m/s
         self.alt_diff = np.array(np.diff(self.sens_gps_mean))
         # calculate flight duration
-        self.takeoff_time = self.convert_time(self.vario_data[0][0])
-        self.landing_time = self.convert_time(
+        self.takeoff_time = convert_time(self.vario_data[0][0])
+        self.landing_time = convert_time(
             self.vario_data[self.vario_data.shape[0] - 1][0]
         )
         self.flight_duration = self.landing_time - self.takeoff_time
@@ -66,29 +80,31 @@ class SingleFlight(Constants):
                     self.vario_data.append(line)
                 elif line.startswith("HFSITSITE"):
                     self.flight_name = line[10:]
+                elif line.startswith("HFDTE"):
+                    date = line[5:-1]
+                    self.flight_date = "/".join(date[i : i + 2] for i in range(0, len(date), 2))
 
     # convert time to correct format
-    def convert_time(self, time):
-        time = str(time)
-        if len(time) < 6:
-            time = "0" + time
-        time = datetime.strptime(
-            ":".join(time[i : i + 2] for i in range(0, len(time), 2)), "%H:%M:%S"
-        )
-        return time
 
     def print_stats(self):
         divider = "".join(["=" for _ in range(50)])
         print(divider)
-        print(f"Flight name: {self.flight_name}")
+        print(f"Flight name:\t{self.flight_name}")
+        print(f"Date:\t{self.flight_date}")
+        print(f"Takeoff:\t{self.takeoff_time.time()}")
+        print(f"Landing:\t{self.landing_time.time()}")
         print(f"Flight duration:\t{self.flight_duration}")
         print(f"Takeoff altitude:\t{self.sens_gps_mean[0]} m")
         print(f"Landing altitude:\t{self.sens_gps_mean[-1]} m")
-        print(f"Max altitude:\t\t{np.max(self.sens_gps_mean)} m")
-        print(f"Max climb rate:\t\t{np.max(self.alt_diff)} m/s")
-        print(f"Max sink rate:\t\t{np.min(self.alt_diff)} m/s")
-        print(f"Max integrated climb ({Constants.INTEGRATION_TIME} s): {np.max(self.integrated_alt_diff):.1f} m/s")
-        print(f"Max integrated sink ({Constants.INTEGRATION_TIME} s): {np.min(self.integrated_alt_diff):.1f} m/s")
+        print(f"Max altitude:\t{np.max(self.sens_gps_mean)} m")
+        print(f"Max climb rate:\t{np.max(self.alt_diff)} m/s")
+        print(f"Max sink rate:\t{np.min(self.alt_diff)} m/s")
+        print(
+            f"Max integrated climb ({Constants.INTEGRATION_TIME} s):\t{np.max(self.integrated_alt_diff):.1f} m/s"
+        )
+        print(
+            f"Max integrated sink ({Constants.INTEGRATION_TIME} s):\t{np.min(self.integrated_alt_diff):.1f} m/s"
+        )
         print(divider)
 
     def extract_altitudes(self):
