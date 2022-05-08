@@ -15,8 +15,6 @@ def convert_time(time):
     )
     return time
 
-def convert_date(date):
-    return date
 
 class SingleFlight(Constants):
     def __init__(self, file):
@@ -82,7 +80,9 @@ class SingleFlight(Constants):
                     self.flight_name = line[10:]
                 elif line.startswith("HFDTE"):
                     date = line[5:-1]
-                    self.flight_date = "/".join(date[i : i + 2] for i in range(0, len(date), 2))
+                    self.flight_date = "/".join(
+                        date[i : i + 2] for i in range(0, len(date), 2)
+                    )
 
     # convert time to correct format
 
