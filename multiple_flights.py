@@ -8,7 +8,6 @@ class MultipleFlights:
         self.flights = []
         # initialize obj
         self.initialize_flights(directory_path)
-        pass
 
     def initialize_flights(self, directory_path):
         # iterate over directory files
