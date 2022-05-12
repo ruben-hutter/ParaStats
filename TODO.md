@@ -1,11 +1,5 @@
 # TODO
 
-[x] Check number of parameters
-[x] extract also
-    [x] date -> from file name (std)
-    [x] takeoff time -> from first entry
-    [x] landing time -> takeoff time + flight duration
-
 ## To improve project
 
 [] Make a GUI
