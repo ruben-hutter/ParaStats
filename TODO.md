@@ -1,12 +1,14 @@
 # TODO
 
 [x] Check number of parameters
+[x] extract also
+    [x] date -> from file name (std)
+    [x] takeoff time -> from first entry
+    [x] landing time -> takeoff time + flight duration
 
 ## To improve project
 
-[x] Read all files from Data directory
 [] Make a GUI
 [] Add Graphic of altitude variations
 [] Include 3D Map with gps track
-[] Run without parameter and let calculate mean of all flights
-    [] elaborate list of flights
+[] think of alternative data structures to lists
