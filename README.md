@@ -10,8 +10,8 @@ It is possible to run the programm either with a specific file, or to let it cal
 
 **Run programm with a specific file**:
 
-`python3 paraStat.py <file_path>`
+`python3 launcher.py <file_path>`
 
-**Run programm on Data folder**:
+**Run programm on folder containing multiple flights**:
 
-`python3 paraStat.py`
+`python3 launcher.py <directory_path>`
