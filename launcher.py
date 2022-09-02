@@ -9,7 +9,7 @@ def main():
     if num_args == 2:
         # parse data
         arg = sys.argv[1]
-        if len(arg.split('/')) > 1 and not arg.endswith(".igc"):
+        if not arg.endswith(".igc") and not arg.endswith(".IGC"):
             # directory path
             # create multiple flights obj
             my_flights = MultipleFlights(arg)
