@@ -37,5 +37,5 @@ download_flights = WebDriverWait(driver, 10).until(
 with zipfile.ZipFile(download_path+"*.zip", 'r') as zip_ref:
     zip_ref.extractall(download_path)
 
-#driver.quit()
+driver.quit()
 print("===== Finished =====")
