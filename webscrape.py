@@ -7,7 +7,49 @@ import os
 from datetime import date
 import time
 
+# max time for download
+TIMEOUT = 20
+download_path = os.path.join(os.environ['HOME'], "Downloads/")
+url = "https://www.xcontest.org/world/en/"
 driver = webdriver.Firefox()
+
+
+def get_user_data():
+    print("===== Enter login data =====")
+    username = input("Username: ")
+    password = input("Password: ")
+    return username, password
+
+
+def login(username, password):
+    login_username = driver.find_element(By.ID, "login-username")
+    login_username.send_keys(username)
+    login_password = driver.find_element(By.ID, "login-password")
+    login_password.send_keys(password)
+    login_password.send_keys(Keys.ENTER)
+
+
+def download_flights(file_path):
+    print("===== Downloading... =====")
+    initial_number = check_number_of_files(download_path)
+    download_igc = driver.find_element(By.LINK_TEXT, "IGC")
+    driver.execute_script("arguments[0].click();", download_igc)
+    # wait until download completed
+    # 1) firefox creates the end file and a tmp file for the download
+    # 2) count number of files before download
+    # 3) check until only 1 new file instead of 2 -> download finished
+    dl_completed = False
+    t_start = time.time()
+    t_elapsed = 0
+    while not dl_completed and t_elapsed < TIMEOUT:
+        sleep(1)
+        t_elapsed = time.time() - t_start
+        # check if file exists
+        if os.path.isfile(file_path) and check_number_of_files(download_path) == initial_number + 1:
+            print("===== Finished download =====")
+            return True
+    print("===== Error downloading flights! Try again later! =====")
+    return False
 
 
 def check_number_of_files(path):
@@ -16,54 +58,35 @@ def check_number_of_files(path):
     return number_of_files
 
 
-# login data
-print("===== Enter login data =====")
-username = input("Username: ")
-password = input("Password: ")
-print("===== Getting flights =====")
+def extract_flights(file_path, username):
+    print("===== Extracting... =====")
+    with zipfile.ZipFile(file_path, 'r') as zip_ref:
+        zip_ref.extractall(f"{download_path}/{username}_flights")
+    print("===== Finished =====")
 
-# variables
-url = "https://www.xcontest.org/world/en/"
-download_path = os.path.join(os.environ['HOME'], "Downloads/")
-file_name = f"igc.{username}.world{str(date.today().year)}.zip"
-file_path = download_path + file_name
 
-# open webpage
-driver.get(url)
-# wait to load page
-driver.implicitly_wait(3)
-# enter username & password for login
-login_username = driver.find_element(By.ID, "login-username")
-login_username.send_keys(username)
-login_password = driver.find_element(By.ID, "login-password")
-login_password.send_keys(password)
-login_password.send_keys(Keys.ENTER)
-# go to my_flights
-my_flights = driver.find_element(By.LINK_TEXT, "My flights")
-my_flights.click()
-# download all flights
-print("===== Downloading... =====")
-download_flights = driver.find_element(By.LINK_TEXT, "IGC")
-driver.execute_script("arguments[0].click();", download_flights)
-# wait until download completed
-# 1) firefox creates the end file and a tmp file for the download
-# 2) count number of files before download
-# 3) check until only 1 new file instead of 2 -> download finished
-dl_completed = False
-# TODO fix timeout code
-t_start = time.time()
-initial_number = check_number_of_files(download_path)
-while not dl_completed or (time.time() - t_start) < 20:
-    sleep(1)
-    # check if file exists
-    if os.path.isfile(file_path) and check_number_of_files(download_path) == initial_number + 1:
-        dl_completed = True
-        break
-print("===== Finished download =====")
-# extract flights
-print("===== Extracting... =====")
-with zipfile.ZipFile(file_path, 'r') as zip_ref:
-    zip_ref.extractall(f"{download_path}/{username}_flights")
+def main():
+    # get user's xcontest credentials
+    username, password = get_user_data()
+    file_name = f"igc.{username}.world{str(date.today().year)}.zip"
+    file_path = download_path + file_name
+    # open webpage
+    driver.get(url)
+    # wait to load page
+    driver.implicitly_wait(3)
+    # login with credentials
+    login(username, password)
+    # go to my_flights
+    my_flights = driver.find_element(By.LINK_TEXT, "My flights")
+    my_flights.click()
+    # download all flights
+    download_ok = download_flights(file_path)
+    # check if flights downloaded correctly
+    if download_ok:
+        # extract flights
+        extract_flights(file_path, username)
+    driver.quit()
 
-driver.quit()
-print("===== Finished =====")
+
+if __name__ == "__main__":
+    main()
