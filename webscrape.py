@@ -2,13 +2,19 @@ from time import sleep
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 import zipfile
 import os
 from datetime import date
+import time
 
 driver = webdriver.Firefox()
+
+
+def check_number_of_files(path):
+    directory = os.listdir(path)
+    number_of_files = len(directory)
+    return number_of_files
+
 
 # login data
 print("===== Enter login data =====")
@@ -40,12 +46,19 @@ print("===== Downloading... =====")
 download_flights = driver.find_element(By.LINK_TEXT, "IGC")
 driver.execute_script("arguments[0].click();", download_flights)
 # wait until download completed
+# 1) firefox creates the end file and a tmp file for the download
+# 2) count number of files before download
+# 3) check until only 1 new file instead of 2 -> download finished
 dl_completed = False
-while not dl_completed:
+# TODO fix timeout code
+t_start = time.time()
+initial_number = check_number_of_files(download_path)
+while not dl_completed or (time.time() - t_start) < 20:
     sleep(1)
     # check if file exists
-    if os.path.exists(file_path) and os.path.isfile(file_path):
+    if os.path.isfile(file_path) and check_number_of_files(download_path) == initial_number + 1:
         dl_completed = True
+        break
 print("===== Finished download =====")
 # extract flights
 print("===== Extracting... =====")
