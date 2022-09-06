@@ -85,6 +85,7 @@ def main():
     if download_ok:
         # extract flights
         extract_flights(file_path, username)
+    # TODO retry download
     driver.quit()
 
 
