@@ -65,6 +65,13 @@ def extract_flights(file_path, username):
     print("===== Finished =====")
 
 
+def remove_temp_files():
+    for file in os.listdir(download_path):
+        # TODO check if it works
+        if os.path.isfile(file) and file.endswith(".zip.part"):
+            os.remove(file)
+
+
 def main():
     # get user's xcontest credentials
     username, password = get_user_data()
@@ -80,12 +87,19 @@ def main():
     my_flights = driver.find_element(By.LINK_TEXT, "My flights")
     my_flights.click()
     # download all flights
-    download_ok = download_flights(file_path)
-    # check if flights downloaded correctly
-    if download_ok:
-        # extract flights
-        extract_flights(file_path, username)
-    # TODO retry download
+    download_ok = False
+    choice = "r"
+    while not download_ok and choice == "r":
+        download_ok = download_flights(file_path)
+        # check if flights downloaded correctly
+        if download_ok:
+            # extract flights
+            extract_flights(file_path, username)
+        else:
+            print("===== Download failed =====")
+            choice = input("[R]etry | [C]ancel: ").lower()
+    # remove possible temp files
+    remove_temp_files()
     driver.quit()
 
 
