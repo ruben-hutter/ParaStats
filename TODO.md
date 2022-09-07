@@ -8,8 +8,9 @@
 [x] remove the temporary files in case of download fail
 [x] check if download started by timeout before retrying to download
 [x] calculate mean of data in multiple_flights.py
-[] move constants from single_flight.py to separate file
-[] format multiple pretty for printing
+[x] move constants from single_flight.py to separate file
+[~] format multiple pretty for printing
+[] add to multiple_flights.py mean flight time, total flight time, km (with map implementation maybe)
 [] Make a GUI
 [] Add Graphic of altitude variations
 [] Include 3D Map with gps track

@@ -2,11 +2,7 @@ from datetime import datetime
 
 import numpy as np
 
-
-class Constants:
-    # integrated value of vario data
-    INTEGRATION_TIME = 15
-    PRINTING_DIVIDER = "".join(["=" for _ in range(50)])
+from constants import Constants
 
 
 def convert_time(time):

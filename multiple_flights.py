@@ -1,6 +1,17 @@
 import os
 
+from constants import Constants
 from single_flight import SingleFlight
+
+
+def divider(message):
+    msg_len = len(message)
+    total_div_symbl = Constants.DIVIDER_LEN - msg_len
+    one_side_divider = "".join(["=" for _ in range(total_div_symbl // 2 - 1)])
+    divider_message = " ".join([one_side_divider, message, one_side_divider])
+    if len(divider_message) < Constants.DIVIDER_LEN:
+        divider_message += "="
+    return divider_message
 
 
 class MultipleFlights:
@@ -28,11 +39,11 @@ class MultipleFlights:
             self._calculate_mean(flight)
             flight.print_stats()
         self.calculate_mean()
-        print("===== Mean of all flights =====")
-        print(f"Takeoff altitude:\t{self.mean_takeoff_altitude} m")
-        print(f"Max altitude:\t{self.mean_max_altitude} m")
-        print(f"Max integrated climb rate ({Constants.INTEGRATION_TIME} s):\t{self.mean_max_integrated_climb} m/s")
-        print(f"Max integrated sink rate ({Constants.INTEGRATION_TIME} s):\t{self.mean_max_integrated_sink} m/s")
+        print(divider("Mean of all flights"))
+        print(f"Takeoff altitude:\t{self.mean_takeoff_altitude:.1f} m")
+        print(f"Max altitude:\t{self.mean_max_altitude:.1f} m")
+        print(f"Max integrated climb rate ({Constants.INTEGRATION_TIME} s):\t{self.mean_max_integrated_climb:.1f} m/s")
+        print(f"Max integrated sink rate ({Constants.INTEGRATION_TIME} s):\t{self.mean_max_integrated_sink:.1f} m/s")
 
     def calculate_mean(self):
         self.mean_takeoff_altitude /= self.number_of_flights
