@@ -1,11 +1,12 @@
-from time import sleep
-from selenium import webdriver
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.common.by import By
-import zipfile
 import os
-from datetime import date
 import time
+import zipfile
+from datetime import date
+from time import sleep
+
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
 
 # max time for download
 TIMEOUT = 20

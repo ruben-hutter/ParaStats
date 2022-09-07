@@ -1,6 +1,7 @@
 import sys
-from single_flight import SingleFlight
+
 from multiple_flights import MultipleFlights
+from single_flight import SingleFlight
 
 
 def main():
