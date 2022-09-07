@@ -29,6 +29,10 @@ class MultipleFlights:
             flight.print_stats()
         self.calculate_mean()
         print("===== Mean of all flights =====")
+        print(f"Takeoff altitude:\t{self.mean_takeoff_altitude} m")
+        print(f"Max altitude:\t{self.mean_max_altitude} m")
+        print(f"Max integrated climb rate ({Constants.INTEGRATION_TIME} s):\t{self.mean_max_integrated_climb} m/s")
+        print(f"Max integrated sink rate ({Constants.INTEGRATION_TIME} s):\t{self.mean_max_integrated_sink} m/s")
 
     def calculate_mean(self):
         self.mean_takeoff_altitude /= self.number_of_flights
