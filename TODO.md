@@ -15,6 +15,7 @@
     [] total flight time
     [] total km (with map implementation maybe)
     [] time format
+[] check time. maybe utc.
 [] make a GUI
 [] add Graphic of altitude variations
 [] include 3D Map with gps track

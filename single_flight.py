@@ -31,8 +31,8 @@ class SingleFlight(Constants):
         self.integrated_alt_diff = []
         self.max_integrated_climb = 0
         self.max_integrated_sink = 0
-        self.takeoff_time = 0
-        self.landing_time = 0
+        self.takeoff_time = datetime.min
+        self.landing_time = datetime.min
         self.flight_duration = 0
         # initialize obj
         self.initialize_flight(file)
