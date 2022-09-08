@@ -1,18 +1,16 @@
-from datetime import datetime
+from datetime import timedelta
 
 import numpy as np
 
 from constants import Constants
 
 
-def convert_time(time):
-    time = str(time)
-    if len(time) < 6:
-        time = "0" + time
-    time = datetime.strptime(
-        ":".join(time[i: i + 2] for i in range(0, len(time), 2)), "%H:%M:%S"
-    )
-    return time
+def convert_time(t):
+    t = str(t)
+    seconds = int(t[-2:])
+    minutes = int(t[-4:-2])
+    hours = int(t[:-4])
+    return timedelta(hours=hours, minutes=minutes, seconds=seconds)
 
 
 class SingleFlight(Constants):
@@ -31,8 +29,8 @@ class SingleFlight(Constants):
         self.integrated_alt_diff = []
         self.max_integrated_climb = 0
         self.max_integrated_sink = 0
-        self.takeoff_time = datetime.min
-        self.landing_time = datetime.min
+        self.takeoff_time = timedelta.min
+        self.landing_time = timedelta.min
         self.flight_duration = 0
         # initialize obj
         self.initialize_flight(file)
@@ -56,8 +54,6 @@ class SingleFlight(Constants):
             self.vario_data[self.vario_data.shape[0] - 1][0]
         )
         self.flight_duration = self.landing_time - self.takeoff_time
-        self.takeoff_time = self.takeoff_time.time()
-        self.landing_time = self.landing_time.time()
 
         self.calculate_integrated_alt_diff()
         self.calculate_max_and_min_alt_diff()
