@@ -114,10 +114,7 @@ class SingleFlight(Constants):
             self.sens_alt.append(self.vario_data[n][3])
             self.gps_alt.append(self.vario_data[n][4])
             # calculate mean alt
-            self.calculate_mean_alt(np.mean([self.sens_alt[-1], self.gps_alt[-1]]))
-
-    def calculate_mean_alt(self, mean_val):
-        self.sens_gps_mean.append(mean_val)
+            self.sens_gps_mean.append(np.mean([self.sens_alt[-1], self.gps_alt[-1]]))
 
     def calculate_integrated_alt_diff(self):
         self.integrated_alt_diff = np.array(

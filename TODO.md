@@ -10,9 +10,12 @@
 [x] calculate mean of data in multiple_flights.py
 [x] move constants from single_flight.py to separate file
 [x] format multiple pretty for printing
-[~] add to multiple_flights.py mean flight time, total flight time, km (with map implementation maybe)
+[~] add to multiple_flights.py:
+    [] mean flight time
+    [] total flight time
+    [] total km (with map implementation maybe)
     [] time format
-[] Make a GUI
-[] Add Graphic of altitude variations
-[] Include 3D Map with gps track
+[] make a GUI
+[] add Graphic of altitude variations
+[] include 3D Map with gps track
 [] think of alternative data structures to lists
