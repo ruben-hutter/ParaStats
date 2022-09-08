@@ -56,6 +56,8 @@ class SingleFlight(Constants):
             self.vario_data[self.vario_data.shape[0] - 1][0]
         )
         self.flight_duration = self.landing_time - self.takeoff_time
+        self.takeoff_time = self.takeoff_time.time()
+        self.landing_time = self.landing_time.time()
 
         self.calculate_integrated_alt_diff()
         self.calculate_max_and_min_alt_diff()
@@ -93,8 +95,8 @@ class SingleFlight(Constants):
         print(Constants.PRINTING_DIVIDER)
         print(f"Flight name:\t{self.flight_name}")
         print(f"Date:\t{self.flight_date}")
-        print(f"Takeoff:\t{self.takeoff_time.time()}")
-        print(f"Landing:\t{self.landing_time.time()}")
+        print(f"Takeoff:\t{self.takeoff_time}")
+        print(f"Landing:\t{self.landing_time}")
         print(f"Flight duration:\t{self.flight_duration}")
         print(f"Takeoff altitude:\t{self.sens_gps_mean[0]} m")
         print(f"Landing altitude:\t{self.sens_gps_mean[-1]} m")
