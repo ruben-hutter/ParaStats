@@ -12,9 +12,8 @@
 [x] format multiple pretty for printing
 [~] add to multiple_flights.py:
     [x] mean flight time
-    [] total flight time
+    [~] total flight time
     [] total km (with map implementation maybe)
-    [] time format
 [] check time. maybe utc.
 [] make a GUI
 [] add Graphic of altitude variations

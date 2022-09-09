@@ -21,12 +21,21 @@ def round_seconds(obj: dt.timedelta) -> dt.timedelta:
     return dt.timedelta(seconds=obj.seconds)
 
 
+def days_to_hours(obj: dt.timedelta) -> str:
+    d = obj.days
+    s = obj.seconds
+    hours, remainder = divmod(s, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    hours += d * 24
+    return f"{hours:02}:{minutes:02}:{seconds:02}"
+
+
 class MultipleFlights:
     def __init__(self, directory_path):
         self.flights = []
         self.number_of_flights = 0
         self.mean_flight_duration = dt.timedelta()
-        self.total_flight_time = dt.time()
+        self.total_flight_time = dt.timedelta()
         self.mean_takeoff_altitude = 0
         self.mean_max_altitude = 0
         self.mean_max_integrated_climb = 0
@@ -50,6 +59,7 @@ class MultipleFlights:
         self.calculate_mean()
         print(divider("Mean of all flights"))
         print(f"Flight duration:\t{self.mean_flight_duration}")
+        print(f"Total air time:\t{self.total_flight_time}")
         print(f"Takeoff altitude:\t{self.mean_takeoff_altitude:.1f} m")
         print(f"Max altitude:\t{self.mean_max_altitude:.1f} m")
         print(f"Max integrated climb rate ({Constants.INTEGRATION_TIME} s):\t{self.mean_max_integrated_climb:.1f} m/s")
@@ -58,6 +68,7 @@ class MultipleFlights:
     def calculate_mean(self):
         self.mean_flight_duration /= self.number_of_flights
         self.mean_flight_duration = round_seconds(self.mean_flight_duration)
+        self.total_flight_time = days_to_hours(self.total_flight_time)
         self.mean_takeoff_altitude /= self.number_of_flights
         self.mean_max_altitude /= self.number_of_flights
         self.mean_max_integrated_climb /= self.number_of_flights
@@ -66,6 +77,7 @@ class MultipleFlights:
     def _calculate_mean(self, flight):
         self.number_of_flights += 1
         self.mean_flight_duration += flight.flight_duration
+        self.total_flight_time += flight.flight_duration
         self.mean_takeoff_altitude += flight.sens_gps_mean[0]
         self.mean_max_altitude += flight.max_altitude
         self.mean_max_integrated_climb += flight.max_integrated_climb
