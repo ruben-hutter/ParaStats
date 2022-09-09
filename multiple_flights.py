@@ -1,4 +1,4 @@
-import datetime
+import datetime as dt
 import os
 
 from constants import Constants
@@ -15,11 +15,18 @@ def divider(message):
     return divider_message
 
 
+def round_seconds(obj: dt.timedelta) -> dt.timedelta:
+    if obj.microseconds >= 500_000:
+        obj += dt.timedelta(seconds=1)
+    return dt.timedelta(seconds=obj.seconds)
+
+
 class MultipleFlights:
     def __init__(self, directory_path):
         self.flights = []
         self.number_of_flights = 0
-        self.mean_flight_duration = datetime.timedelta(0)
+        self.mean_flight_duration = dt.timedelta()
+        self.total_flight_time = dt.time()
         self.mean_takeoff_altitude = 0
         self.mean_max_altitude = 0
         self.mean_max_integrated_climb = 0
@@ -50,6 +57,7 @@ class MultipleFlights:
 
     def calculate_mean(self):
         self.mean_flight_duration /= self.number_of_flights
+        self.mean_flight_duration = round_seconds(self.mean_flight_duration)
         self.mean_takeoff_altitude /= self.number_of_flights
         self.mean_max_altitude /= self.number_of_flights
         self.mean_max_integrated_climb /= self.number_of_flights

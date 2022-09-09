@@ -11,7 +11,7 @@
 [x] move constants from single_flight.py to separate file
 [x] format multiple pretty for printing
 [~] add to multiple_flights.py:
-    [~] mean flight time
+    [x] mean flight time
     [] total flight time
     [] total km (with map implementation maybe)
     [] time format
