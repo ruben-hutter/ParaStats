@@ -94,7 +94,10 @@ def wait_download(file_path):
 def main():
     # get user's xcontest credentials
     username, password = get_user_data()
-    file_name = f"igc.{username}.world{str(date.today().year)}.zip"
+    # find correct date for file
+    today = date.today()
+    year = today.year if today.month < 10 else today.year + 1
+    file_name = f"igc.{username}.world{str(year)}.zip"
     file_path = DOWNLOAD_PATH + file_name
     # open webpage
     DRIVER.get(URL)
