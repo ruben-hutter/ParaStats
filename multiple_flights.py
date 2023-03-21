@@ -36,8 +36,7 @@ class MultipleFlights:
         self.number_of_flights = 0
         self.mean_flight_duration = dt.timedelta()
         self.total_flight_time = dt.timedelta()
-        self.mean_takeoff_altitude = 0
-        self.mean_max_altitude = 0
+        self.absolute_max_altitude = 0
         self.mean_max_integrated_climb = 0
         self.mean_max_integrated_sink = 0
         # initialize obj
@@ -60,8 +59,7 @@ class MultipleFlights:
         print(divider("Mean of all flights"))
         print(f"Flight duration:\t{self.mean_flight_duration}")
         print(f"Total air time:\t{self.total_flight_time}")
-        print(f"Takeoff altitude:\t{self.mean_takeoff_altitude:.1f} m")
-        print(f"Max altitude:\t{self.mean_max_altitude:.1f} m")
+        print(f"Max altitude:\t{self.absolute_max_altitude:.1f} m")
         print(f"Max integrated climb rate ({Constants.INTEGRATION_TIME} s):\t{self.mean_max_integrated_climb:.1f} m/s")
         print(f"Max integrated sink rate ({Constants.INTEGRATION_TIME} s):\t{self.mean_max_integrated_sink:.1f} m/s")
 
@@ -69,8 +67,6 @@ class MultipleFlights:
         self.mean_flight_duration /= self.number_of_flights
         self.mean_flight_duration = round_seconds(self.mean_flight_duration)
         self.total_flight_time = days_to_hours(self.total_flight_time)
-        self.mean_takeoff_altitude /= self.number_of_flights
-        self.mean_max_altitude /= self.number_of_flights
         self.mean_max_integrated_climb /= self.number_of_flights
         self.mean_max_integrated_sink /= self.number_of_flights
 
@@ -78,7 +74,7 @@ class MultipleFlights:
         self.number_of_flights += 1
         self.mean_flight_duration += flight.flight_duration
         self.total_flight_time += flight.flight_duration
-        self.mean_takeoff_altitude += flight.sens_gps_mean[0]
-        self.mean_max_altitude += flight.max_altitude
+        if self.absolute_max_altitude < flight.max_altitude:
+            self.absolute_max_altitude = flight.max_altitude
         self.mean_max_integrated_climb += flight.max_integrated_climb
         self.mean_max_integrated_sink += flight.max_integrated_sink
