@@ -112,6 +112,9 @@ flights/        your .igc files (gitignored)
 
 - `just lint` / `just test` / `just ci` — clippy `-D warnings`, cargo tests,
   web build + type-check.
+- Git hooks: run `just hooks` once per clone — pre-commit checks
+  `cargo fmt --check`, pre-push runs `just ci` (everything CI runs, locally;
+  bypass with `git push --no-verify`).
 - Snapshots: after a deliberate IGC parser change, `cargo insta review`.
 - Queries are runtime-checked (no build-time `DATABASE_URL`) — the build
   stays hermetic; migrations live in `migrations/` and are embedded via

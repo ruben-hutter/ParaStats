@@ -15,6 +15,20 @@ jobs:
         with:
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
+      # The web bundle must exist before clippy/test: rust-embed's derive
+      # (WebAssets in src/api.rs) fails to compile when web/dist/ is missing,
+      # and web/dist/ is gitignored (built by the web job, but jobs are
+      # isolated).
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+      - run: pnpm -C web install
+      - run: pnpm -C web build
       - name: cargo fmt --check
         run: cargo fmt --check
       - name: cargo clippy

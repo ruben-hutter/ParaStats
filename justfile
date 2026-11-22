@@ -43,3 +43,8 @@ ci:
     just test
     pnpm -C web build
     pnpm -C web check
+
+# Enable the versioned git hooks (.githooks/) for this checkout — run once
+# per clone. pre-commit checks formatting, pre-push runs `just ci`.
+hooks:
+    git config core.hooksPath .githooks

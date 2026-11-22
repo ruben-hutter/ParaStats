@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# Fast pre-commit gate: formatting only (sub-second).
+# Full checks (clippy, tests, web build) run in .githooks/pre-push.
+
+set -euo pipefail
+
+# Touching no Rust source? Nothing to check.
+if ! git diff --cached --name-only --diff-filter=ACMR | grep -q '\.rs$'; then
+    exit 0
+fi
+
+exec cargo fmt --check

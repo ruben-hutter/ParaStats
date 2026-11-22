@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# Pre-push gate: run everything CI runs (cargo fmt --check, clippy -D
+# warnings, cargo test, web build + svelte-check) before anything leaves
+# the machine. Building the web bundle here also keeps `web/dist/` present,
+# which rust-embed's derive in src/api.rs needs to compile.
+#
+# Run the same checks manually: just ci
+# Bypass this hook:                        git push --no-verify
+
+set -euo pipefail
+
+if ! command -v just >/dev/null 2>&1; then
+    echo "pre-push: 'just' is not installed, can't run the CI checks." >&2
+    echo "pre-push: install just (nix, cargo install just, brew, ...)," >&2
+    echo "pre-push: or bypass with: git push --no-verify" >&2
+    exit 1
+fi
+
+echo "pre-push: running 'just ci' (fmt + clippy + test + web build + check)..."
+if ! just ci; then
+    echo >&2
+    echo "pre-push: 'just ci' failed — push aborted." >&2
+    echo "pre-push: run 'just ci' yourself to reproduce; bypass with:" >&2
+    echo "pre-push:   git push --no-verify" >&2
+    exit 1
+fi
