@@ -16,7 +16,6 @@
   import type { Layer } from "@deck.gl/core";
   import { api, type Flight, type SkywayProperties, type ThermalCellProperties } from "../api";
   import MapView from "../lib/MapView.svelte";
-  import { theme } from "../theme";
   import { DEFAULT_KNOBS, buildThermalTexture, type ThermalKnobs } from "../lib/thermal";
   import { altitudeColor, rgbCss, densityColor, hotColor } from "../lib/colors";
   import { localTime, localDate, formatAltitude } from "../lib/fmt";
@@ -111,21 +110,36 @@
     showThermal && thermals.length > 0 ? buildThermalTexture(thermals, knobs) : null,
   );
 
-  // Hotspots: top cells by climb count — the "centers of thermal activity".
+  // Hotspots: strongest thermal cells — the "centers of thermal activity".
+  // Top cells by climb count, greedily spaced ≥ ~2 km apart so clusters of
+  // adjacent bins don't paint a bullseye on one mountain.
   let hotspots = $derived.by(() => {
-    return [...thermals]
-      .sort((a, b) => b.properties.count - a.properties.count)
-      .slice(0, HOTSPOT_COUNT)
-      .map((f, rank) => ({
-        f,
-        rank,
-        lon: f.geometry.coordinates[0] as number,
-        lat: f.geometry.coordinates[1] as number,
-      }));
+    const km = (a: CellFeature, b: CellFeature) => {
+      const dLat = (b.geometry.coordinates[1] - a.geometry.coordinates[1]) * 111;
+      const dLon =
+        (b.geometry.coordinates[0] - a.geometry.coordinates[0]) *
+        111 * Math.cos(((a.geometry.coordinates[1] ?? 0) * Math.PI) / 180);
+      return Math.hypot(dLat, dLon);
+    };
+    const picked: CellFeature[] = [];
+    for (const f of [...thermals].sort((a, b) => b.properties.count - a.properties.count)) {
+      if (picked.length >= HOTSPOT_COUNT) break;
+      if (picked.every((p) => km(p, f) >= 2)) picked.push(f);
+    }
+    const maxCount = picked[0]?.properties.count ?? 1;
+    return picked.map((f, rank) => ({
+      f,
+      rank,
+      lon: f.geometry.coordinates[0] as number,
+      lat: f.geometry.coordinates[1] as number,
+      rel: f.properties.count / maxCount, // 1 = strongest
+    }));
   });
 
   // Deck layers. Rebuilt (new array identity) only when the inputs above
   // change — MapView forwards the array to overlay.setProps.
+  // Track legibility (skytrackpro recipe): thick rounded lines, strong
+  // alpha, bright cool blues over the light topo basemap.
   let layers = $derived.by(() => {
     const out: Layer[] = [];
     if (thermalTexture) {
@@ -149,14 +163,14 @@
               (c) => [c[0], c[1]] as [number, number],
             ),
           getColor: (f: SkywayFeature) => {
-            if (!useAltitude) return [0, 77, 255, 180]; // cool blue #004dff
+            if (!useAltitude) return [0, 90, 235, 255]; // cool blue #005aeb
             return f.geometry.coordinates.map(([, , alt]) => {
               const [r, g, b] = altitudeColor(alt);
-              return [r, g, b, 200];
+              return [r, g, b, 245];
             });
           },
-          getWidth: 1.2,
-          widthMinPixels: 1,
+          getWidth: 2,
+          widthMinPixels: 2,
           widthUnits: "pixels",
           pickable: true,
           onHover: (info: PickingInfo) => onTrackHover(info),
@@ -177,14 +191,14 @@
           getPosition: (d) => [d.lon, d.lat],
           getFillColor: (d) => {
             const [r, g, b] = hotColor(d.f.properties.avg_climb_ms / 5);
-            return [r, g, b, 235];
+            return [r, g, b, 240];
           },
-          getLineColor: [7, 11, 36, 255],
-          getRadius: (d) => Math.max(7, 26 - d.rank * 1.6),
+          getLineColor: [255, 255, 255, 255],
+          getRadius: (d) => 6 + 12 * d.rel,
           radiusUnits: "pixels",
           stroked: true,
           lineWidthUnits: "pixels",
-          getLineWidth: 2,
+          getLineWidth: 2.5,
           pickable: true,
           onHover: (info: PickingInfo) => onHotspotHover(info),
         }),
@@ -281,7 +295,7 @@
 </script>
 
 <div class="view">
-  <MapView layers={layers} {fitBounds} dark={$theme === "dark"} bind:kk7 onReady={(m) => (map = m)} />
+  <MapView layers={layers} {fitBounds} bind:kk7 onReady={(m) => (map = m)} />
 
   {#if loading}
     <div class="panel status">loading…</div>

@@ -3,8 +3,13 @@
   import { theme, toggleTheme } from "./theme";
   import Overview from "./views/Overview.svelte";
   import Flights from "./views/Flights.svelte";
-  import Thermals from "./views/Thermals.svelte";
-  import FlightDetail from "./views/FlightDetail.svelte";
+
+  // The map views pull in maplibre-gl + deck.gl (~1.5 MB minified), so they
+  // are code-split into their own chunks and only fetched when a map route
+  // is opened. Overview and Flights stay in the initial bundle — both are
+  // light, and keeping them eager avoids a blank frame on first paint.
+  const Thermals = () => import("./views/Thermals.svelte").then((m) => m.default);
+  const FlightDetail = () => import("./views/FlightDetail.svelte").then((m) => m.default);
 
   function go(e: MouseEvent, path: string) {
     e.preventDefault();
@@ -50,12 +55,32 @@
 
 <main class="page" class:fullbleed={$route.name === "thermals"}>
   {#if $route.name === "flight" && $route.id}
-    <FlightDetail id={$route.id} />
+    {#await FlightDetail()}<p class="chunk-status">loading flight view…</p>{:then Detail}
+      <Detail id={$route.id} />
+    {:catch err}
+      <p class="chunk-status error">failed to load flight view: {err}</p>
+    {/await}
   {:else if $route.name === "flights"}
     <Flights />
   {:else if $route.name === "thermals"}
-    <Thermals />
+    {#await Thermals()}<p class="chunk-status">loading map…</p>{:then ThermalsView}
+      <ThermalsView />
+    {:catch err}
+      <p class="chunk-status error">failed to load map view: {err}</p>
+    {/await}
   {:else}
     <Overview />
   {/if}
 </main>
+
+<style>
+  /* Chunk-loading fallback for the lazy map views. Kept minimal — each view
+     styles its own .status once it has mounted. */
+  .chunk-status {
+    padding: 24px 0;
+    color: var(--text-dim, #9aa5c4);
+  }
+  .chunk-status.error {
+    color: #dc2626;
+  }
+</style>

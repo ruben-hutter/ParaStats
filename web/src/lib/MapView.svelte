@@ -5,9 +5,11 @@
   // so parent views build fresh layer arrays only when their inputs change
   // and we just forward them with setProps.
   //
-  // The basemap follows the theme: CARTO Positron (light) / Dark Matter.
-  // (The original OpenFreeMap Liberty has no dark style; the CARTO GL pair
-  // is equally free/keyless and matches the paper/ink + near-black faces.)
+  // Basemap: ONE style for both page themes — OpenFreeMap Liberty (free,
+  // no API key, vector so it stays crisp at every zoom). A colourful,
+  // light basemap keeps tracks readable everywhere; the map deliberately
+  // does NOT follow the light/dark toggle (skytrackpro pattern). Panels
+  // and controls around it stay themed via CSS vars.
 
   import { onMount } from "svelte";
   import maplibregl from "maplibre-gl";
@@ -18,15 +20,12 @@
   let {
     layers,
     fitBounds = null,
-    dark = false,
     kk7 = $bindable(false),
     onReady,
   }: {
     layers: Layer[];
     /** [[west, south], [east, north]] — camera fits this when it changes. */
     fitBounds?: [[number, number], [number, number]] | null;
-    /** Dark basemap (CARTO Dark Matter) vs light (Positron). */
-    dark?: boolean;
     /** kk7 thermal comparison raster overlay toggle. */
     kk7?: boolean;
     onReady?: (map: maplibregl.Map) => void;
@@ -36,12 +35,8 @@
   let map: maplibregl.Map;
   let overlay: MapboxOverlay | null = null;
   let ready = $state(false);
-  let appliedStyle = "";
 
-  const BASEMAP_STYLE = (dark: boolean) =>
-    dark
-      ? "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json"
-      : "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json";
+  const BASEMAP_STYLE = "https://tiles.openfreemap.org/styles/liberty";
 
   // kk7 thermal/skyways tile overlay. TMS y-scheme — MapLibre's
   // `scheme: "tms"` on the source handles the flip.
@@ -52,16 +47,18 @@
   onMount(() => {
     map = new maplibregl.Map({
       container,
-      style: BASEMAP_STYLE(dark),
+      style: BASEMAP_STYLE,
       center: [8.9, 46.1], // Locarno area; recentered on data once loaded
       zoom: 9,
+      // The page scroll-zooming by accident is worse than explicit +/-
+      // controls; trackpad pinch still zooms (cooperative gesture off).
+      scrollZoom: true,
     });
-    map.addControl(new maplibregl.NavigationControl(), "top-right");
+    map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
     overlay = new MapboxOverlay({ layers: [] });
     map.addControl(overlay);
     onReady?.(map);
     ready = true;
-    appliedStyle = BASEMAP_STYLE(dark);
 
     return () => {
       overlay?.finalize();
@@ -69,15 +66,6 @@
       overlay = null;
       ready = false;
     };
-  });
-
-  // Swap basemap style with the theme. setStyle wipes runtime sources, so
-  // the kk7 effect below re-runs (it depends on `dark`) and re-adds them.
-  $effect(() => {
-    const url = BASEMAP_STYLE(dark);
-    if (!ready || !map || url === appliedStyle) return;
-    appliedStyle = url;
-    map.setStyle(url);
   });
 
   // Sync deck layers whenever the parent rebuilds the array.
@@ -94,9 +82,11 @@
     }
   });
 
-  // kk7 raster overlay on/off (and back on after a basemap swap).
-  function syncKk7() {
-    if (!map) return;
+  // kk7 raster overlay on/off.
+  $effect(() => {
+    void kk7;
+    void ready;
+    if (!map || !ready) return;
     if (kk7 && !map.getSource(KK7_SOURCE_ID)) {
       map.addSource(KK7_SOURCE_ID, {
         type: "raster",
@@ -115,19 +105,6 @@
     } else if (!kk7 && map.getSource(KK7_SOURCE_ID)) {
       if (map.getLayer(KK7_LAYER_ID)) map.removeLayer(KK7_LAYER_ID);
       map.removeSource(KK7_SOURCE_ID);
-    }
-  }
-
-  $effect(() => {
-    void dark;
-    void kk7;
-    void ready;
-    if (!map || !ready) return;
-    if (map.isStyleLoaded()) {
-      syncKk7();
-    } else {
-      // Style still loading (fresh setStyle) — sync once it settles.
-      map.once("style.load", syncKk7);
     }
   });
 </script>

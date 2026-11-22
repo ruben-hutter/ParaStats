@@ -20,7 +20,7 @@ dev:
     pnpm -C web dev
 
 # Ingest a folder of .igc files (recursive; idempotent via content hashes).
-ingest folder='flights':
+ingest folder:
     cargo run --quiet -- ingest {{folder}}
 
 # Release build: web bundle + rust binary (bundle embedded at compile time).

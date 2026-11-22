@@ -11,7 +11,6 @@
   import MapView from "../lib/MapView.svelte";
   import AltitudeProfile from "../lib/AltitudeProfile.svelte";
   import { altitudeColor } from "../lib/colors";
-  import { theme } from "../theme";
   import {
     localDateLong,
     localTime,
@@ -29,7 +28,8 @@
   let track = $state<TrackRow[]>([]);
   let error = $state("");
   let loading = $state(true);
-  let progress = $state(1); // 0..1 along the track (by fix index)
+  let progress = $state(0); // 0..1 along the track (by fix index); starts
+  // at launch so the full altitude-coloured track is visible before replay.
 
   async function load() {
     loading = true;
@@ -39,7 +39,7 @@
       flight = detail.flight;
       climbs = detail.climbs;
       track = await api.track(id);
-      progress = 1;
+      progress = 0;
     } catch (e) {
       error = e instanceof Error ? e.message : String(e);
     } finally {
@@ -94,37 +94,78 @@
   let layers = $derived.by(() => {
     if (!flight || track.length < 2 || !pos) return [];
     const flownEnd = pos.idx + 2; // flown path includes the interpolated fix
+    // Track legibility (skytrackpro recipe): ONE continuous polyline per
+    // layer (per-vertex altitude colours), white casing underneath, thick
+    // round line — plus launch/landing dots with white outlines.
+    const flown = track.slice(0, flownEnd);
+    const endpoints: Array<{ pos: [number, number]; kind: "launch" | "land" }> = [];
+    if (flight.takeoff_lat != null && flight.takeoff_lon != null) {
+      endpoints.push({ pos: [flight.takeoff_lon, flight.takeoff_lat], kind: "launch" });
+    }
+    if (flight.landing_lat != null && flight.landing_lon != null) {
+      endpoints.push({ pos: [flight.landing_lon, flight.landing_lat], kind: "land" });
+    }
     return [
-      // Full track, coloured by altitude.
-      new PathLayer<TrackRow>({
-        id: "track",
-        data: track,
-        getPath: (p: TrackRow) => [p[2], p[1]],
-        getColor: (p: TrackRow) => {
-          const [r, g, b] = altitudeColor(p[3]);
-          return [r, g, b, 230];
-        },
-        getWidth: 2,
+      // White halo so the track pops off the basemap.
+      new PathLayer<TrackRow[]>({
+        id: "track-casing",
+        data: [track],
+        getPath: (t: TrackRow[]) => t.map((p) => [p[2], p[1]] as [number, number]),
+        getColor: [255, 255, 255, 230],
+        getWidth: 8,
         widthUnits: "pixels",
+      }),
+      // Full track, coloured by altitude (per-vertex).
+      new PathLayer<TrackRow[]>({
+        id: "track",
+        data: [track],
+        getPath: (t: TrackRow[]) => t.map((p) => [p[2], p[1]] as [number, number]),
+        getColor: (t: TrackRow[]) =>
+          t.map((p) => {
+            const [r, g, b] = altitudeColor(p[3]);
+            return [r, g, b, 255] as [number, number, number, number];
+          }),
+        getWidth: 4.5,
+        widthUnits: "pixels",
+        jointRounded: true,
+        capRounded: true,
       }),
       // Trailing "flown" segment in white.
-      new PathLayer<TrackRow>({
+      new PathLayer<TrackRow[]>({
         id: "flown",
-        data: track.slice(0, flownEnd),
-        getPath: (p: TrackRow) => [p[2], p[1]],
-        getColor: [255, 255, 255, 140],
-        getWidth: 2.5,
+        data: [flown],
+        getPath: (t: TrackRow[]) => t.map((p) => [p[2], p[1]] as [number, number]),
+        getColor: [255, 255, 255, 240],
+        getWidth: 5.5,
         widthUnits: "pixels",
+        jointRounded: true,
       }),
+      // Launch / landing dots (cool cyan = launch, hot orange = landing).
+      ...(endpoints.length > 0
+        ? [
+            new ScatterplotLayer<(typeof endpoints)[number]>({
+              id: "endpoints",
+              data: endpoints,
+              getPosition: (d) => d.pos,
+              getFillColor: (d) => (d.kind === "launch" ? [0, 178, 255, 255] : [255, 104, 0, 255]),
+              getLineColor: [255, 255, 255, 255],
+              radiusUnits: "pixels",
+              getRadius: 7,
+              stroked: true,
+              lineWidthUnits: "pixels",
+              getLineWidth: 2.5,
+            }),
+          ]
+        : []),
       // Current position marker.
       new ScatterplotLayer({
         id: "marker",
         data: [{ position: [pos.lon, pos.lat] as [number, number] }],
         getPosition: (d: { position: [number, number] }) => d.position,
         getFillColor: [255, 255, 255, 255],
-        getLineColor: [20, 20, 30],
+        getLineColor: [7, 11, 36, 255],
         radiusUnits: "pixels",
-        getRadius: 6,
+        getRadius: 7,
         stroked: true,
         lineWidthUnits: "pixels",
         getLineWidth: 2,
@@ -228,7 +269,7 @@
 
     <h2 class="h-section">Track</h2>
     <section class="card map-card">
-      <MapView layers={layers} {fitBounds} dark={$theme === "dark"} />
+      <MapView layers={layers} {fitBounds} />
     </section>
 
     <h2 class="h-section">Climbs <span class="dim">· {climbs.length}</span></h2>

@@ -52,11 +52,17 @@
 
 ## Amendments
 
-- **2026-11 (feat/frontend-redesign): basemap is now the CARTO GL pair
-  (Positron / Dark Matter), not OpenFreeMap Liberty.** The frontend grew a
-  light/dark theme; OpenFreeMap has no dark style, while the CARTO GL
-  styles are equally free/keyless and track the theme. Everything else in
-  the original basemap decision (MapLibre + deck.gl via MapboxOverlay, no
-  API key) is unchanged. The design language also moved to a kk7-derived
-  token system (see `web/src/app.css`) with Comfortaa self-hosted — the
-  backend contract is untouched.
+- **2026-11 (feat/frontend-redesign): the basemap is a single style in both
+  page themes — OpenFreeMap Liberty, the style this ADR originally chose.**
+  Two experiments failed in practice: theme-swapping Positron/Dark Matter
+  made tracks unreadable (dark blues vanish on Dark Matter; Positron
+  washes out), and OpenTopoMap raster proved too busy and rate-limited for
+  track reading. The map deliberately does not follow the light/dark
+  toggle (skytrackpro pattern); legibility comes from track rendering
+  instead: one continuous polyline per layer (per-vertex altitude colours)
+  on a white casing, thick round joins, white-stroked launch/landing dots.
+  Also fixed here: the flight-detail PathLayer drew one single-point path
+  per track row (invisible); it now draws the whole track as one path.
+  The design language otherwise uses a kk7-derived token system (see
+  `web/src/app.css`) with Comfortaa self-hosted — the backend contract is
+  untouched.
