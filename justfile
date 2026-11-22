@@ -12,7 +12,6 @@ dev:
     set -e
     pnpm -C web install
     pnpm -C web build
-    echo "backend on :8080, vite on :5173 — open http://localhost:5173"
     cargo run -- serve > /tmp/parastats-serve.log 2>&1 &
     SERVER_PID=$!
     trap 'kill $SERVER_PID 2>/dev/null || true' EXIT
