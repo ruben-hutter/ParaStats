@@ -49,3 +49,14 @@
 - Old Python scripts are deleted; their stats are a strict subset of the new
   pipeline (git history preserves them). XContest ingest (the old
   `webscrape.py` idea) is filed as a follow-up issue.
+
+## Amendments
+
+- **2026-11 (feat/frontend-redesign): basemap is now the CARTO GL pair
+  (Positron / Dark Matter), not OpenFreeMap Liberty.** The frontend grew a
+  light/dark theme; OpenFreeMap has no dark style, while the CARTO GL
+  styles are equally free/keyless and track the theme. Everything else in
+  the original basemap decision (MapLibre + deck.gl via MapboxOverlay, no
+  API key) is unchanged. The design language also moved to a kk7-derived
+  token system (see `web/src/app.css`) with Comfortaa self-hosted — the
+  backend contract is untouched.

@@ -11,16 +11,23 @@ rendering live on here (see the module doc comments for attribution).
 
 ## What you get
 
-- **Map** (`#/`) — all flights as tracks (plain or altitude-coloured), a
-  thermal-core density layer (coloured by peak climb rate), kk7 comparison
-  overlay, season / time-of-day / year filters, searchable + sortable flight
-  list.
-- **Flight detail** (`#/flight/:id`) — stat cards (takeoff/landing, duration,
-  distance, max/min altitude, total climb, max climb/sink), full-resolution
-  track with a **progress slider** (marker + flown segment), a synced
-  altitude profile (hover it to scrub), and the detected climbs list.
-- **Stats** (`#/stats`) — totals (flights, airtime, km, max altitude, total
-  climb) and per-year bars.
+- **Overview** (`#/`) — a paraglidingstats-style career page: narrative
+  summary in prose, headline facts (active years, longest pause, best
+  flight, busiest site…), per-year bars (flights / hours / distance), a
+  monthly histogram and a sortable site leaderboard.
+- **Flights** (`#/flights`) — dense sortable table of every flight (date,
+  site, duration, track distance, max altitude, altitude gain, best climb)
+  with year filter and text search; row click → flight detail.
+- **Flight detail** (`#/flight/:id`) — data-dense page: stat strip,
+  scrubable altitude profile, **embedded** track map with progress marker
+  and flown segment, and the detected climbs list.
+- **Thermals** (`#/thermals`) — the map: all flights as tracks (plain or
+  altitude-coloured), a thermal-core density layer (coloured by peak climb
+  rate), kk7 comparison overlay, season / time-of-day / year filters,
+  hover popups with click-through to flight detail.
+
+Light + dark themes with a topbar toggle (system preference by default,
+applied before first paint); Comfortaa type, self-hosted.
 
 ## Quick start (dev)
 

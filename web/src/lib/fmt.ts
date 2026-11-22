@@ -68,6 +68,11 @@ export function formatDistance(m: number): string {
   return m >= 1000 ? `${(m / 1000).toFixed(1)} km` : `${Math.round(m)} m`;
 }
 
+/** Whole kilometres with de-CH grouping — for prose/headlines: 17'318 km. */
+export function formatDistanceGrouped(m: number): string {
+  return `${Math.round(m / 1000).toLocaleString("de-CH")} km`;
+}
+
 export function formatAltitude(m: number): string {
   return `${Math.round(m).toLocaleString("de-CH")} m`;
 }

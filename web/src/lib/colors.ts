@@ -1,4 +1,10 @@
 // Colour ramps shared by the map layers. Ported from flightmap web/src/main.ts.
+//
+// Identity (thermal.kk7.ch): the COOL ramp (cyan → blue → indigo, kk7's
+// --cool) carries skyway/altitude data; the HOT ramp (amber → orange →
+// red, kk7's --hot) carries thermal/climb data. The thermal *density*
+// canvas keeps its spectral blue→red ramp (same family kk7 itself uses
+// for thermal probability).
 
 export type RGB = [number, number, number];
 
@@ -19,24 +25,37 @@ function rampColor(stops: Array<[number, RGB]>, v: number): RGB {
   return stops[stops.length - 1][1];
 }
 
-// Altitude colour ramp for track layers (metres MSL). Thresholds cover the
-// paragliding envelope: 0=ground (green), 1000=scratch (yellow),
-// 2000=cloudbase-ish (orange), 3500+=wave/high (purple/white).
+// Altitude colour ramp for track layers (metres MSL) — the kk7 COOL ramp:
+// valley blues → cyan → indigo tint → near-white at wave altitudes.
 const ALTITUDE_STOPS: Array<[number, RGB]> = [
-  [0, [80, 140, 60]],
-  [800, [180, 200, 80]],
-  [1600, [240, 180, 60]],
-  [2400, [220, 110, 50]],
-  [3200, [160, 80, 160]],
-  [4000, [240, 240, 255]],
+  [0, [16, 64, 140]], // valley floor: deep blue
+  [800, [0, 110, 210]], // scratch: blue
+  [1600, [0, 178, 255]], // cloudbase-ish: cyan (#00b2ff)
+  [2400, [93, 128, 255]], // high: blue-violet
+  [3200, [138, 155, 255]], // wave: kk7 tint (#8a9bff)
+  [4000, [235, 240, 255]], // very high: near-white
 ];
 
 export function altitudeColor(altM: number): RGB {
   return rampColor(ALTITUDE_STOPS, altM);
 }
 
-// Same 6-stop RdYlBu_r ramp as deck.gl's HeatmapLayer colorRange, for the
-// thermal density canvas (t ∈ [0,1] = climb-rate fraction).
+// HOT ramp (kk7 --hot: amber → orange → red) for climb-rate data —
+// hotspot markers, climb tints. v ∈ [0,1], 1 = hottest.
+const HOT_STOPS: Array<[number, RGB]> = [
+  [0.0, [255, 198, 0]], // amber #ffc600
+  [0.5, [255, 104, 0]], // orange #ff6800
+  [1.0, [242, 8, 0]], // red #f20800
+];
+
+/** Climb-rate fraction (m/s mapped over [0, maxRate]) → kk7 hot colour. */
+export function hotColor(t: number): RGB {
+  return rampColor(HOT_STOPS, Math.min(1, Math.max(0, t)));
+}
+
+// Spectral ramp for the thermal density canvas (t ∈ [0,1] = climb-rate
+// fraction) — blue (low) → cyan → yellow → red (high), the same family
+// kk7 uses for its thermal-probability ramp.
 const DENSITY_STOPS: Array<[number, RGB]> = [
   [0.0, [33, 102, 172]], // blue (low density)
   [0.2, [103, 169, 207]],

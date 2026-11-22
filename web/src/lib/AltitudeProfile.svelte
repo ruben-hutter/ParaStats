@@ -2,8 +2,10 @@
   // Hand-rolled SVG altitude profile — no chart lib (keep the bundle light).
   // X axis is time, Y axis altitude; a vertical marker tracks the scrub
   // position and mouse movement scrubs back (synced with the slider).
+  // All colours read the active theme via CSS custom properties.
 
   import { altitudeColor, rgbCss } from "./colors";
+  import { formatAltitude } from "./fmt";
 
   let {
     times,
@@ -96,19 +98,12 @@
     {#each segments as s, i (i)}
       <path d={s.d} stroke={s.color} stroke-width="1.5" fill="none" />
     {/each}
-    <line
-      x1={markerX}
-      x2={markerX}
-      y1={0}
-      y2={H}
-      stroke="rgba(255,255,255,0.5)"
-      stroke-width="1"
-    />
-    <circle cx={markerX} cy={markerY} r="4" fill="#fff" />
+    <line class="marker-line" x1={markerX} x2={markerX} y1={0} y2={H} />
+    <circle class="marker-dot" cx={markerX} cy={markerY} r="4" />
   </svg>
   <div class="axis">
-    <span>{Math.round(aMin)} m</span>
-    <span>{Math.round(aMax)} m</span>
+    <span>{formatAltitude(aMin)}</span>
+    <span>{formatAltitude(aMax)}</span>
   </div>
 </div>
 
@@ -116,16 +111,29 @@
   .profile {
     position: relative;
     width: 100%;
-    padding: 8px 0 0;
+    padding: 4px 0 0;
   }
 
   svg {
     width: 100%;
-    height: 160px;
+    height: 170px;
     display: block;
     cursor: crosshair;
-    background: rgba(255, 255, 255, 0.03);
+    background: var(--panel-raised);
+    border: 1px solid var(--border);
     border-radius: 8px;
+  }
+
+  .marker-line {
+    stroke: var(--text-dim);
+    stroke-width: 1;
+    opacity: 0.7;
+  }
+
+  .marker-dot {
+    fill: var(--text);
+    stroke: var(--bg);
+    stroke-width: 1.5;
   }
 
   .axis {
@@ -133,6 +141,7 @@
     justify-content: space-between;
     font-size: 11px;
     color: var(--text-dim);
-    padding: 2px 6px;
+    padding: 3px 6px 0;
+    font-variant-numeric: tabular-nums;
   }
 </style>
