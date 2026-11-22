@@ -25,6 +25,7 @@ ingest folder='flights':
 
 # Release build: web bundle + rust binary (bundle embedded at compile time).
 build:
+    pnpm -C web install
     pnpm -C web build
     cargo build --release
 
@@ -37,11 +38,13 @@ lint:
     cargo clippy --all-targets -- -D warnings
 
 # Everything CI runs, locally.
+# Web install+build must come first: rust-embed needs web/dist/ to compile.
 ci:
+    pnpm -C web install
+    pnpm -C web build
     cargo fmt --check
     just lint
     just test
-    pnpm -C web build
     pnpm -C web check
 
 # Enable the versioned git hooks (.githooks/) for this checkout — run once
