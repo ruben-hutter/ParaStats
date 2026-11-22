@@ -1,0 +1,6 @@
+---
+source: tests/snapshot_igc.rs
+assertion_line: 59
+expression: summary(&flight)
+---
+id=local:skytraxx_monte_lema.igc points=430 start=2025-07-20 12:04:01 end=2025-07-20 12:11:10 lat=[46.03895,46.04052] lon=[8.83068,8.83395] baro=[Some(1560),Some(1599)]

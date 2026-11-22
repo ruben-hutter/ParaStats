@@ -1,0 +1,45 @@
+[package]
+name = "parastats"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.82"
+description = "Self-hosted paragliding flight stats web app (map + tracks + stats) from IGC logs"
+license = "MIT"
+repository = "https://github.com/ruben-hutter/ParaStats"
+
+[lib]
+name = "parastats"
+path = "src/lib.rs"
+
+[[bin]]
+name = "parastats"
+path = "src/main.rs"
+
+[dependencies]
+chrono = { version = "0.4", default-features = false, features = ["std", "clock"] }
+chrono-tz = "0.10"
+geo = "0.30"
+geojson = "0.24"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+rayon = "1"
+walkdir = "2"
+blake3 = "1"
+rmp-serde = "1"
+anyhow = "1"
+thiserror = "2"
+clap = { version = "4", features = ["derive", "env"] }
+axum = "0.8"
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "signal"] }
+sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio", "sqlite", "chrono", "macros", "migrate"] }
+rust-embed = "8"
+
+[dev-dependencies]
+insta = "1"
+pretty_assertions = "1"
+tower = { version = "0.5", features = ["util"] }
+http-body-util = "0.1"
+
+[profile.release]
+debug = "line-tables-only"
+lto = "thin"

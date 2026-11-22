@@ -1,0 +1,18 @@
+services:
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    volumes:
+      # Your IGC files, ingested once on startup (idempotent: re-running
+      # skips already-known content hashes).
+      - ./flights:/data/flights:ro
+      # SQLite database survives container recreation in a named volume.
+      - parastats-db:/data/db
+    environment:
+      PARASTATS_DB: /data/db/parastats.db
+      PARASTATS_INGEST_DIR: /data/flights
+    restart: unless-stopped
+
+volumes:
+  parastats-db:

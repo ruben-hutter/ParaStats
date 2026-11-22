@@ -1,0 +1,6 @@
+---
+source: tests/snapshot_igc.rs
+assertion_line: 68
+expression: summary(&flight)
+---
+id=local:xctrack_monte_lema.igc points=260 start=2025-07-21 14:12:10 end=2025-07-21 14:16:29 lat=[46.03407,46.03993] lon=[8.82587,8.83198] baro=[Some(1529),Some(1684)]
