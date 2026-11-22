@@ -150,4 +150,4 @@ Stack decisions are recorded in [`docs/adr/`](docs/adr/).
 
 ## License
 
-Apache-2.0
+[MIT](LICENSE)
