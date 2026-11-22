@@ -7,7 +7,8 @@
 //!
 //! Strategy: parse by fixed-width slices (robust against off-spec phone/vario
 //! files), tolerate short lines and missing altitudes, and never fail the whole
-//! flight on one bad record.
+//! flight on one bad record. Site headers are accepted in both common
+//! forms: `HFSITSITE:` (Skytraxx) and `HOSITSite:` (XCTrack's O-record).
 
 use crate::model::{Flight, SourceKind, TrackPoint};
 use chrono::NaiveDate;
@@ -57,10 +58,17 @@ pub fn parse_igc(text: &str, id: &str) -> Result<Flight, IgcError> {
             continue;
         }
 
-        // Site name: HFSITSITE:<name> (Skytraxx writes it; XCTrack doesn't).
-        if let Some(rest) = line.strip_prefix("HFSITSITE:") {
+        // Site name: HFSITSITE:<name> (Skytraxx) or XCTrack's observation
+        // record HOSITSite:<name> (mixed case, per XCTrack's writer).
+        if let Some(rest) = line
+            .strip_prefix("HFSITSITE:")
+            .or_else(|| strip_xctrack_site(line))
+        {
             let v = rest.trim();
-            if !v.is_empty() {
+            // XCTrack writes a literal "?" when no site was selected — a
+            // junk name is worse than none, so require at least one
+            // alphanumeric character.
+            if v.chars().any(|c| c.is_alphanumeric()) {
                 site = Some(v.to_string());
             }
             continue;
@@ -131,6 +139,14 @@ pub fn parse_igc(text: &str, id: &str) -> Result<Flight, IgcError> {
         points,
         source: SourceKind::Local,
     })
+}
+
+/// XCTrack writes the site as an observation record, `HOSITSite:<name>`
+/// (mixed case). Match the mnemonic case-insensitively so both
+/// `HOSITSite:` and `HOSITSITE:` forms are accepted.
+fn strip_xctrack_site(line: &str) -> Option<&str> {
+    let (head, rest) = line.split_at_checked(10)?; // "HOSITSite:" is 10 bytes
+    head.eq_ignore_ascii_case("HOSITSite:").then_some(rest)
 }
 
 /// Parse `DDMMYY` into a [`NaiveDate`]. Returns `None` if not parseable so a
@@ -271,6 +287,28 @@ mod tests {
     #[test]
     fn empty_site_header_is_ignored() {
         let text = "HFDTE280625\nHFSITSITE:\nB1200004610500N00859100EA0145001460\n";
+        let flight = parse_igc(text, "local:t.igc").unwrap();
+        assert!(flight.site.is_none());
+    }
+
+    #[test]
+    fn captures_xctrack_observation_site_header() {
+        // XCTrack writes HOSITSite:<name> (mixed case, O-record form) —
+        // 95 of the 159 header-less flights in the real DB carry it.
+        let text = "HFDTE280625\nHOSITSite:Monte Lema\nB1200004610500N00859100EA0145001460\n";
+        let flight = parse_igc(text, "local:t.igc").unwrap();
+        assert_eq!(flight.site.as_deref(), Some("Monte Lema"));
+
+        // Uppercase variant accepted too.
+        let text = "HFDTE280625\nHOSITSITE:Carì\nB1200004610500N00859100EA0145001460\n";
+        let flight = parse_igc(text, "local:t.igc").unwrap();
+        assert_eq!(flight.site.as_deref(), Some("Carì"));
+    }
+
+    #[test]
+    fn junk_site_value_is_ignored() {
+        // XCTrack writes "?" when the pilot never picked a site.
+        let text = "HFDTE280625\nHOSITSite:?\nB1200004610500N00859100EA0145001460\n";
         let flight = parse_igc(text, "local:t.igc").unwrap();
         assert!(flight.site.is_none());
     }

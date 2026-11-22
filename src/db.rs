@@ -51,6 +51,9 @@ pub struct FlightRow {
     pub landing_lon: Option<f64>,
     pub takeoff_alt_m: Option<i64>,
     pub site: Option<String>,
+    /// Where [`FlightRow::site`] came from: `'igc'` (device header) or
+    /// `'osm'` (external takeoff-site lookup, see `crate::sites`).
+    pub site_source: Option<String>,
     pub pilot: Option<String>,
     pub distance_track_m: f64,
     pub max_alt_m: i64,
@@ -164,17 +167,17 @@ pub async fn upsert_flight(pool: &SqlitePool, insert: &FlightInsert) -> Result<(
     sqlx::query(
         "INSERT INTO flights (
             id, source, filename, date_utc, takeoff_time_utc, landing_time_utc, duration_s,
-            takeoff_lat, takeoff_lon, landing_lat, landing_lon, takeoff_alt_m, site, pilot,
+            takeoff_lat, takeoff_lon, landing_lat, landing_lon, takeoff_alt_m, site, site_source, pilot,
             distance_track_m, max_alt_m, min_alt_m, alt_gain_m, max_climb_ms, max_sink_ms,
             track_simplified, track_full
-        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
         ON CONFLICT(id) DO UPDATE SET
             source=excluded.source, filename=excluded.filename, date_utc=excluded.date_utc,
             takeoff_time_utc=excluded.takeoff_time_utc, landing_time_utc=excluded.landing_time_utc,
             duration_s=excluded.duration_s, takeoff_lat=excluded.takeoff_lat,
             takeoff_lon=excluded.takeoff_lon, landing_lat=excluded.landing_lat,
             landing_lon=excluded.landing_lon, takeoff_alt_m=excluded.takeoff_alt_m,
-            site=excluded.site, pilot=excluded.pilot,
+            site=excluded.site, site_source=excluded.site_source, pilot=excluded.pilot,
             distance_track_m=excluded.distance_track_m, max_alt_m=excluded.max_alt_m,
             min_alt_m=excluded.min_alt_m, alt_gain_m=excluded.alt_gain_m,
             max_climb_ms=excluded.max_climb_ms, max_sink_ms=excluded.max_sink_ms,
@@ -193,6 +196,7 @@ pub async fn upsert_flight(pool: &SqlitePool, insert: &FlightInsert) -> Result<(
     .bind(r.landing_lon)
     .bind(r.takeoff_alt_m)
     .bind(&r.site)
+    .bind(&r.site_source)
     .bind(&r.pilot)
     .bind(r.distance_track_m)
     .bind(r.max_alt_m)
@@ -296,6 +300,7 @@ mod tests {
             landing_lon: Some(8.1),
             takeoff_alt_m: Some(1200),
             site: Some("Monte Lema".into()),
+            site_source: Some("igc".into()),
             pilot: Some("Ruben".into()),
             distance_track_m: 12_345.6,
             max_alt_m: 2000,
@@ -373,6 +378,7 @@ mod tests {
                 landing_lon: None,
                 takeoff_alt_m: None,
                 site: None,
+                site_source: None,
                 pilot: None,
                 distance_track_m: 0.0,
                 max_alt_m: 0,

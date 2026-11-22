@@ -88,12 +88,13 @@ fn both_date_formats_yield_same_calendar_day() {
 #[test]
 fn site_and_pilot_headers_are_captured() {
     // Skytraxx writes HFSITSITE + HFPLTPILOT; XCTrack writes
-    // HFPLTPILOTINCHARGE and no site. Both forms must surface in metadata.
+    // HFPLTPILOTINCHARGE and its site as the O-record HOSITSite. Both site
+    // forms must surface in metadata.
     let sky = parse_igc(&load_fixture("skytraxx_monte_lema.igc"), "local:sky.igc").unwrap();
     assert_eq!(sky.site.as_deref(), Some("Monte Lema"));
     assert_eq!(sky.pilot.as_deref(), Some("Anonymised"));
 
     let xc = parse_igc(&load_fixture("xctrack_monte_lema.igc"), "local:xc.igc").unwrap();
-    assert!(xc.site.is_none());
+    assert_eq!(xc.site.as_deref(), Some("Monte Lema"));
     assert_eq!(xc.pilot.as_deref(), Some("Anonymised"));
 }

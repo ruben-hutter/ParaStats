@@ -323,6 +323,9 @@ mod tests {
         let path =
             std::env::temp_dir().join(format!("parastats-apitest-{}-{n}.db", std::process::id()));
         let pool = db::open_db(path.to_str().unwrap()).await.unwrap();
+        // Seed the external takeoff-site cache so ingest doesn't hit the
+        // network from tests.
+        crate::sites::seed_cache_from_fixture(&pool).await;
         let fixtures = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures");
         crate::ingest::ingest_folder(&pool, &fixtures, false)
             .await
@@ -350,9 +353,15 @@ mod tests {
         let state = test_state().await;
         let list = get_json(&state, "/api/flights").await;
         let flights = list["flights"].as_array().unwrap();
-        assert_eq!(flights.len(), 2);
+        assert_eq!(flights.len(), 3);
 
-        let id = flights[0]["id"].as_str().unwrap();
+        // Detail/track assertions need a full-size flight: the skytraxx one
+        // (the synthetic no-site fixture has only 5 fix records).
+        let sky = flights
+            .iter()
+            .find(|f| f["filename"].as_str().unwrap().contains("skytraxx"))
+            .expect("skytraxx fixture in list");
+        let id = sky["id"].as_str().unwrap();
         let detail = get_json(&state, &format!("/api/flights/{id}")).await;
         assert_eq!(detail["flight"]["id"].as_str().unwrap(), id);
         assert!(detail["climbs"].is_array());
@@ -382,13 +391,13 @@ mod tests {
     async fn stats_and_layers() {
         let state = test_state().await;
         let stats = get_json(&state, "/api/stats").await;
-        assert_eq!(stats["totals"]["flights"].as_i64().unwrap(), 2);
+        assert_eq!(stats["totals"]["flights"].as_i64().unwrap(), 3);
         assert!(stats["totals"]["duration_s"].as_i64().unwrap() > 0);
         assert!(!stats["by_year"].as_array().unwrap().is_empty());
 
         let skyway = get_json(&state, "/api/layers/skyway").await;
         assert_eq!(skyway["type"], "FeatureCollection");
-        assert_eq!(skyway["features"].as_array().unwrap().len(), 2);
+        assert_eq!(skyway["features"].as_array().unwrap().len(), 3);
 
         let thermals = get_json(&state, "/api/layers/thermals").await;
         assert_eq!(thermals["type"], "FeatureCollection");

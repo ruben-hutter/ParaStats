@@ -57,10 +57,26 @@ parastats serve [--addr 0.0.0.0:8080] [--db ./parastats.db]
 parastats ingest <folder> [--db ./parastats.db] [--rebuild]
     Scan a folder of .igc files (recursive) → upsert into the DB.
     --rebuild re-processes files whose content hash already exists.
+
+parastats resolve-sites [--db ./parastats.db] [--refresh]
+    Backfill missing flight sites from the external takeoff-site source
+    (OpenStreetMap via Overpass, cached in the DB; --refresh forces a
+    refetch of the site list).
 ```
 
 Ingest is idempotent by design: the flight id is the blake3 hash of the file
 content, so re-ingesting is a no-op unless the file changed.
+
+**Takeoff sites.** The site name comes from the IGC headers when present
+(Skytraxx's `HFSITSITE:`, XCTrack's `HOSITSite:`). Flights without a site
+header get one from the **nearest cached OpenStreetMap takeoff site within
+300 m** of the takeoff fix (Swiss launches are mapped as
+`sport=free_flying`). The OSM site list is fetched via Overpass at most once
+a week (`$PARASTATS_OVERPASS_URL` overrides the endpoint) and cached in the
+`takeoff_sites` table — there is never a per-flight network call. Unmatched
+flights keep `site = NULL` and the UI falls back to the filename. Site names
+resolved externally are © [OpenStreetMap contributors](https://www.openstreetmap.org/copyright)
+(ODbL).
 
 ## API
 
@@ -84,9 +100,12 @@ to `index.html` for hash routing.
 1. **Ingest** (`parastats ingest`) walks a folder of `.igc` files in
    parallel, parses each with the lenient fixed-width B-record parser
    (handles both `HFDTE` and `HFDTEDATE:` date forms, Skytraxx's
-   `HFSITSITE`/`HFPLTPILOT` and XCTrack's `HFPLTPILOTINCHARGE` headers), and
-   stores everything SQLite needs: summary stats, climb segments, the full
-   track and a Douglas–Peucker-simplified copy (~5 m tolerance).
+   `HFSITSITE`/`HFPLTPILOT` and XCTrack's `HOSITSite`/`HFPLTPILOTINCHARGE`
+   headers), and stores everything SQLite needs: summary stats, climb
+   segments, the full track and a Douglas–Peucker-simplified copy (~5 m
+   tolerance). Flights whose file carried no site header get one from the
+   cached OSM takeoff-site list (see *Takeoff sites* above;
+   `flights.site_source` records where each name came from).
 2. **Serve** runs migrations on startup and serves the API + the SPA.
 3. **Frontend** (Svelte 5 + MapLibre GL + deck.gl) renders tracks as a
    `PathLayer`, the thermal layer as a client-rendered density canvas

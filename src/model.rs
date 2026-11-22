@@ -49,7 +49,8 @@ pub struct Flight {
     /// Prefixed id: `local:foo.igc` or `xcontest:1234` (see [`SourceKind::prefix`]).
     pub id: String,
     pub pilot: Option<String>,
-    /// Site name from the `HFSITSITE` IGC header, when present.
+    /// Site name from the IGC headers (`HFSITSITE:` / XCTrack's
+    /// `HOSITSite:`), when present.
     pub site: Option<String>,
     pub points: Vec<TrackPoint>,
     pub source: SourceKind,

@@ -6,10 +6,14 @@
 //!       the API + SPA on --addr.
 //!   parastats ingest <folder> [--db path] [--rebuild]
 //!       Scan a folder of .igc files → upsert into the DB, print a summary.
+//!   parastats resolve-sites [--db path] [--refresh]
+//!       Backfill `site IS NULL` flights from the external takeoff-site
+//!       source (OSM Overpass, cached in SQLite; see src/sites.rs).
 //!
 //! Env: `PARASTATS_ADDR` (bind address, default 0.0.0.0:8080),
 //! `PARASTATS_DB` (SQLite path, default ./parastats.db),
-//! `PARASTATS_INGEST_DIR` (folder ingested once on `serve` startup).
+//! `PARASTATS_INGEST_DIR` (folder ingested once on `serve` startup),
+//! `PARASTATS_OVERPASS_URL` (Overpass interpreter URL; default: mirror list).
 
 use std::net::SocketAddr;
 use std::path::PathBuf;
@@ -53,6 +57,16 @@ enum Command {
         #[arg(long)]
         rebuild: bool,
     },
+    /// Backfill missing flight sites from the external takeoff-site DB.
+    ResolveSites {
+        /// SQLite database path. Env: PARASTATS_DB.
+        #[arg(long, env = "PARASTATS_DB", default_value = "./parastats.db")]
+        db: PathBuf,
+        /// Force a refresh of the cached site list (default: refetch when
+        /// older than 7 days).
+        #[arg(long)]
+        refresh: bool,
+    },
 }
 
 fn main() -> Result<()> {
@@ -64,6 +78,9 @@ fn main() -> Result<()> {
             db,
             rebuild,
         } => tokio::runtime::Runtime::new()?.block_on(ingest(folder, db, rebuild)),
+        Command::ResolveSites { db, refresh } => {
+            tokio::runtime::Runtime::new()?.block_on(resolve_sites(db, refresh))
+        }
     }
 }
 
@@ -110,16 +127,29 @@ async fn ingest(folder: PathBuf, db_path: PathBuf, rebuild: bool) -> Result<()> 
         .with_context(|| format!("opening db {}", db_path.display()))?;
     let summary = parastats::ingest::ingest_folder(&pool, &folder, rebuild).await?;
     println!(
-        "ingested {} from {}:\n  stored:   {}\n  replaced: {}\n  skipped:  {}\n  failed:   {}",
+        "ingested {} from {}:\n  stored:   {}\n  replaced: {}\n  skipped:  {}\n  failed:   {}\n  sites resolved externally: {}",
         summary.scanned,
         folder.display(),
         summary.stored,
         summary.replaced,
         summary.skipped,
-        summary.failed
+        summary.failed,
+        summary.sites_resolved
     );
     for (path, err) in &summary.failures {
         println!("  fail: {}: {err}", path.display());
     }
+    Ok(())
+}
+
+async fn resolve_sites(db_path: PathBuf, refresh: bool) -> Result<()> {
+    let pool = parastats::db::open_db(db_path.to_str().context("db path must be utf-8")?)
+        .await
+        .with_context(|| format!("opening db {}", db_path.display()))?;
+    let s = parastats::sites::backfill_missing(&pool, refresh).await?;
+    println!(
+        "resolve-sites: {} sites cached; {} flights without site:\n  resolved:   {}\n  unmatched: {} (kept NULL)\n  no coords: {}",
+        s.sites, s.considered, s.resolved, s.unmatched, s.no_coords
+    );
     Ok(())
 }

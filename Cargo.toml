@@ -33,6 +33,7 @@ axum = "0.8"
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "signal"] }
 sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio", "sqlite", "chrono", "macros", "migrate"] }
 rust-embed = "8"
+ureq = { version = "2", default-features = false, features = ["tls"] }
 
 [dev-dependencies]
 insta = "1"

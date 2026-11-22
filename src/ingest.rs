@@ -24,6 +24,7 @@ use crate::db::{self, ClimbRow, FlightInsert, FlightRow};
 use crate::igc::parse_igc;
 use crate::model::SourceKind;
 use crate::simplify::simplify_indices;
+use crate::sites::{self, TakeoffSite};
 use crate::stats;
 
 /// Douglas–Peucker tolerance for the stored simplified track (flightmap
@@ -51,6 +52,8 @@ pub struct IngestSummary {
     pub replaced: usize,
     pub skipped: usize,
     pub failed: usize,
+    /// Flights that got their site from the external takeoff-site source.
+    pub sites_resolved: usize,
     pub failures: Vec<(PathBuf, String)>,
 }
 
@@ -66,7 +69,7 @@ pub async fn ingest_folder(
     }
 
     // Phase 1 (parallel, CPU-bound): read + hash + parse + derive everything.
-    let prepared: Vec<Prepared> = files
+    let mut prepared: Vec<Prepared> = files
         .par_iter()
         .filter_map(|path| match prepare_file(path) {
             Ok(p) => Some(p),
@@ -77,6 +80,23 @@ pub async fn ingest_folder(
         })
         .collect();
 
+    // Phase 1.5: external site resolution for flights whose IGC carried no
+    // site header. One cached site list (refreshed at most every
+    // `sites::SITE_CACHE_TTL`), no per-flight network.
+    let site_cache: Vec<TakeoffSite> = sites::sites_for_resolution(pool).await;
+    for p in &mut prepared {
+        if p.insert.row.site.is_none() {
+            let coords = (p.insert.row.takeoff_lat, p.insert.row.takeoff_lon);
+            if let (Some(lat), Some(lon)) = coords {
+                if let Some(s) = sites::nearest_site(lat, lon, sites::RESOLVE_RADIUS_M, &site_cache)
+                {
+                    p.insert.row.site = Some(s.name.clone());
+                    p.insert.row.site_source = Some("osm".to_string());
+                }
+            }
+        }
+    }
+
     // Phase 2 (serial, DB-bound): idempotent upserts in a stable order.
     let mut summary = IngestSummary {
         scanned: files.len(),
@@ -84,10 +104,12 @@ pub async fn ingest_folder(
         replaced: 0,
         skipped: 0,
         failed: files.len() - prepared.len(),
+        sites_resolved: 0,
         failures: Vec::new(),
     };
 
     for p in prepared {
+        let externally_resolved = p.insert.row.site_source.as_deref() == Some("osm");
         let exists = db::flight_exists(pool, &p.insert.row.id).await?;
         if exists && !rebuild {
             summary.skipped += 1;
@@ -99,6 +121,9 @@ pub async fn ingest_folder(
                     summary.replaced += 1;
                 } else {
                     summary.stored += 1;
+                }
+                if externally_resolved {
+                    summary.sites_resolved += 1;
                 }
             }
             Err(e) => {
@@ -182,6 +207,8 @@ fn prepare_file(path: &Path) -> Result<Prepared> {
         landing_lon: Some(s.landing_lon),
         takeoff_alt_m: s.takeoff_alt_m.map(i64::from),
         site: flight.site.clone(),
+        // Both header forms (HFSITSITE / HOSITSite) count as device-provided.
+        site_source: flight.site.as_ref().map(|_| "igc".to_string()),
         pilot: flight.pilot.clone(),
         distance_track_m: s.distance_track_m,
         max_alt_m: s.max_alt_m.map(i64::from).unwrap_or(0),
@@ -258,25 +285,47 @@ mod tests {
         std::fs::create_dir_all(&dir).unwrap();
         let pool = db::open_db(db_path.to_str().unwrap()).await.unwrap();
 
+        // Seed the external takeoff-site cache so resolution works without
+        // network (fixture sites include the Monte Lema takeoff node).
+        crate::sites::seed_cache_from_fixture(&pool).await;
+
         let fixtures = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures");
         let summary = ingest_folder(&pool, &fixtures, false).await.unwrap();
-        assert_eq!(summary.stored, 2, "both fixtures must ingest");
+        assert_eq!(summary.stored, 3, "all fixtures must ingest");
         assert_eq!(summary.failed, 0);
+        assert_eq!(summary.sites_resolved, 1, "only the header-less fixture");
 
         // Idempotent second run.
         let summary = ingest_folder(&pool, &fixtures, false).await.unwrap();
-        assert_eq!(summary.skipped, 2);
+        assert_eq!(summary.skipped, 3);
         assert_eq!(summary.stored, 0);
 
         let flights = db::flights(&pool, None).await.unwrap();
-        assert_eq!(flights.len(), 2);
+        assert_eq!(flights.len(), 3);
         let skytraxx = flights
             .iter()
             .find(|f| f.filename.contains("skytraxx"))
             .expect("skytraxx fixture row");
         assert_eq!(skytraxx.site.as_deref(), Some("Monte Lema"));
+        assert_eq!(skytraxx.site_source.as_deref(), Some("igc"));
         assert!(skytraxx.duration_s > 0);
         assert!(skytraxx.distance_track_m > 0.0);
+
+        // XCTrack fixture carries HOSITSite (O-record form) → device-provided.
+        let xctrack = flights
+            .iter()
+            .find(|f| f.filename.contains("xctrack_monte_lema"))
+            .expect("xctrack fixture row");
+        assert_eq!(xctrack.site.as_deref(), Some("Monte Lema"));
+        assert_eq!(xctrack.site_source.as_deref(), Some("igc"));
+
+        // Header-less XCTrack fixture → resolved from the external source.
+        let no_site = flights
+            .iter()
+            .find(|f| f.filename.contains("xctrack_no_site"))
+            .expect("no-site fixture row");
+        assert_eq!(no_site.site.as_deref(), Some("Monte Lema"));
+        assert_eq!(no_site.site_source.as_deref(), Some("osm"));
 
         let full = db::track_blob(&pool, &skytraxx.id, "track_full")
             .await

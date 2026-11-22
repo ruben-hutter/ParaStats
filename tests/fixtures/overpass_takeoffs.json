@@ -1,0 +1,118 @@
+{
+ "version": 0.6,
+ "generator": "Overpass API fixture",
+ "osm3s": {
+  "timestamp_osm_base": "118660",
+  "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL."
+ },
+ "elements": [
+  {
+   "type": "node",
+   "id": 3918130401,
+   "tags": {
+    "free_flying:site": "takeoff",
+    "name": "Metschstand",
+    "sport": "free_flying"
+   },
+   "lat": 46.4437198,
+   "lon": 7.4948747
+  },
+  {
+   "type": "node",
+   "id": 3940146240,
+   "tags": {
+    "free_flying:hanggliding": "yes",
+    "free_flying:official": "yes",
+    "free_flying:paragliding": "yes",
+    "free_flying:site": "takeoff",
+    "name": "Monte Lema",
+    "sport": "free_flying"
+   },
+   "lat": 46.0400447,
+   "lon": 8.8317534
+  },
+  {
+   "type": "way",
+   "id": 620734423,
+   "tags": {
+    "free_flying:ground_handling": "permissive",
+    "free_flying:guest-guidelines": "yes",
+    "free_flying:hanggliding": "yes",
+    "free_flying:landing": "yes",
+    "free_flying:official": "yes",
+    "free_flying:paragliding": "yes",
+    "free_flying:rigid": "yes",
+    "free_flying:site_orientation": "SW,W,NW",
+    "free_flying:takeoff": "yes",
+    "free_flying:towing": "no",
+    "name": "Alp Scheidegg",
+    "sport": "free_flying"
+   },
+   "center": {
+    "lat": 47.3039184,
+    "lon": 8.9429854
+   }
+  },
+  {
+   "type": "way",
+   "id": 1206410722,
+   "tags": {
+    "free_flying:hanggliding": "no",
+    "free_flying:official": "yes",
+    "free_flying:paragliding": "yes",
+    "free_flying:rigid": "no",
+    "free_flying:site": "takeoff",
+    "free_flying:site_orientation": "S,SW",
+    "name": "First",
+    "sport": "free_flying"
+   },
+   "center": {
+    "lat": 46.6574328,
+    "lon": 8.0551795
+   }
+  },
+  {
+   "type": "node",
+   "id": 299398630,
+   "lat": 46.5563913,
+   "lon": 7.902635,
+   "tags": {
+    "free_flying:site": "landing",
+    "leisure": "pitch",
+    "name": "Landeplatz Stechelberg",
+    "sport": "free_flying"
+   }
+  },
+  {
+   "type": "node",
+   "id": 9900000001,
+   "lat": 46.70028,
+   "lon": 7.8208,
+   "tags": {
+    "sport": "free_flying",
+    "free_flying:site": "takeoff",
+    "name:de": "Metschstand alternativ"
+   }
+  },
+  {
+   "type": "node",
+   "id": 9900000002,
+   "lat": 46.0399,
+   "lon": 8.8502,
+   "tags": {
+    "paragliding": "takeoff",
+    "name": "Lema Südstart"
+   }
+  },
+  {
+   "type": "node",
+   "id": 9900000003,
+   "lat": 46.0,
+   "lon": 8.0,
+   "tags": {
+    "sport": "free_flying",
+    "free_flying:site": "takeoff"
+   }
+  }
+ ]
+}
