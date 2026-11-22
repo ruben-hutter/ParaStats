@@ -122,7 +122,7 @@ therefore apply to the **tracks** layer, not the thermal cells.
 
 ```
 src/            Rust crate (lib + parastats bin): igc, stats, climb,
-                simplify, geo, aggregate, db, ingest, api
+                simplify, geo, aggregate, db, ingest, sites, api
 migrations/     sqlx migrations (embedded at build, run on startup)
 tests/          insta snapshot tests against two real IGC fixtures
 web/            Svelte 5 + Vite + TypeScript SPA

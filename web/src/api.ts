@@ -20,7 +20,7 @@ export interface Flight {
   site: string | null;
   /** Where `site` came from: "igc" (device header) | "osm" (external
    * takeoff-site lookup) | null. */
-  site_source: string | null;
+  site_source: "igc" | "osm" | null;
   pilot: string | null;
   distance_track_m: number;
   max_alt_m: number;

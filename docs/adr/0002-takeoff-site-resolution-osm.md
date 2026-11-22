@@ -67,3 +67,10 @@ I/O per flight. Backfill of existing rows is a dedicated
 - Site-cache freshness is best-effort: a failed refresh keeps the stale
   cache (with a warning); resolution only fails closed when the cache is
   empty and the fetch fails — flights then stay NULL until the next run.
+- Provenance asymmetry between the two fill paths: `resolve-sites` can only
+  see DB rows, so a pre-existing NULL row whose file actually carries
+  `HOSITSite` gets an OSM name (`'osm'`), while a `--rebuild` re-ingest
+  would later give it the header name (`'igc'`). Same file, different
+  provenance depending on path — acceptable because both names identify
+  the same launch; re-ingesting with `--rebuild` is the canonical way to
+  re-derive everything after a parser change.

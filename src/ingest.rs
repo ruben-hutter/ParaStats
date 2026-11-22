@@ -69,7 +69,7 @@ pub async fn ingest_folder(
     }
 
     // Phase 1 (parallel, CPU-bound): read + hash + parse + derive everything.
-    let mut prepared: Vec<Prepared> = files
+    let prepared: Vec<Prepared> = files
         .par_iter()
         .filter_map(|path| match prepare_file(path) {
             Ok(p) => Some(p),
@@ -80,24 +80,10 @@ pub async fn ingest_folder(
         })
         .collect();
 
-    // Phase 1.5: external site resolution for flights whose IGC carried no
-    // site header. One cached site list (refreshed at most every
-    // `sites::SITE_CACHE_TTL`), no per-flight network.
-    let site_cache: Vec<TakeoffSite> = sites::sites_for_resolution(pool).await;
-    for p in &mut prepared {
-        if p.insert.row.site.is_none() {
-            let coords = (p.insert.row.takeoff_lat, p.insert.row.takeoff_lon);
-            if let (Some(lat), Some(lon)) = coords {
-                if let Some(s) = sites::nearest_site(lat, lon, sites::RESOLVE_RADIUS_M, &site_cache)
-                {
-                    p.insert.row.site = Some(s.name.clone());
-                    p.insert.row.site_source = Some("osm".to_string());
-                }
-            }
-        }
-    }
-
-    // Phase 2 (serial, DB-bound): idempotent upserts in a stable order.
+    // Phase 1.5: decide what will actually be written (skip known hashes),
+    // then resolve external sites — only for those rows, so a fully-skipped
+    // no-op run never touches the network. One cached site list (refreshed
+    // at most every `sites::SITE_CACHE_TTL`), no per-flight network.
     let mut summary = IngestSummary {
         scanned: files.len(),
         stored: 0,
@@ -108,16 +94,38 @@ pub async fn ingest_folder(
         failures: Vec::new(),
     };
 
+    let mut to_write: Vec<(Prepared, bool)> = Vec::new(); // (row, existed before)
     for p in prepared {
-        let externally_resolved = p.insert.row.site_source.as_deref() == Some("osm");
         let exists = db::flight_exists(pool, &p.insert.row.id).await?;
         if exists && !rebuild {
             summary.skipped += 1;
-            continue;
+        } else {
+            to_write.push((p, exists));
         }
+    }
+
+    if to_write.iter().any(|(p, _)| p.insert.row.site.is_none()) {
+        let site_cache: Vec<TakeoffSite> = sites::sites_for_resolution(pool).await;
+        for (p, _) in &mut to_write {
+            if p.insert.row.site.is_none() {
+                let coords = (p.insert.row.takeoff_lat, p.insert.row.takeoff_lon);
+                if let (Some(lat), Some(lon)) = coords {
+                    if let Some(s) = sites::resolve_takeoff(lat, lon, &site_cache) {
+                        p.insert.row.site = Some(s.name.clone());
+                        p.insert.row.site_source = Some(sites::SITE_SOURCE_OSM.to_string());
+                    }
+                }
+            }
+        }
+    }
+
+    // Phase 2 (serial, DB-bound): idempotent upserts in a stable order.
+    for (p, existed) in to_write {
+        let externally_resolved =
+            p.insert.row.site_source.as_deref() == Some(sites::SITE_SOURCE_OSM);
         match db::upsert_flight(pool, &p.insert).await {
             Ok(()) => {
-                if exists {
+                if existed {
                     summary.replaced += 1;
                 } else {
                     summary.stored += 1;

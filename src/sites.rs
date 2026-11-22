@@ -49,6 +49,11 @@ pub const OVERPASS_QUERY: &str = "[out:json][timeout:180];\n(\n  nwr[\"sport\"=\
 /// `meta` key holding the ISO instant of the last successful site fetch.
 pub const META_SITES_FETCHED_AT: &str = "sites_fetched_at";
 
+/// `flights.site_source` value for sites resolved from the external source
+/// (the OSM cache). Centralises the vocabulary shared by ingest, backfill
+/// and [`SiteSource::source_name`].
+pub const SITE_SOURCE_OSM: &str = "osm";
+
 /// Public Overpass instances tried in order; instances are routinely
 /// rate-limited (observed: 406/502/timeouts during research). Overridden
 /// entirely by `PARASTATS_OVERPASS_URL`.
@@ -105,7 +110,7 @@ impl Overpass {
 
 impl SiteSource for Overpass {
     fn source_name(&self) -> &'static str {
-        "osm"
+        SITE_SOURCE_OSM
     }
 
     fn fetch(&self) -> Result<Vec<TakeoffSite>> {
@@ -168,8 +173,13 @@ pub fn parse_overpass(body: &str) -> Result<Vec<TakeoffSite>> {
         let tag =
             |key: &str| -> Option<&str> { tags.and_then(|t| t.get(key)).and_then(|v| v.as_str()) };
 
-        // A landing site must not win a takeoff match.
-        if tag("free_flying:site") == Some("landing") {
+        // A landing site must not win a takeoff match — in any of the tag
+        // schemes the query collects.
+        if matches!(
+            tag("free_flying:site").or_else(|| tag("free_flying")),
+            Some("landing")
+        ) || tag("paragliding") == Some("landing")
+        {
             continue;
         }
         let Some(name) = ["name", "name:de", "name:fr", "name:it", "alt_name"]
@@ -233,6 +243,13 @@ pub fn nearest_site(
         .filter(|(d, _)| *d <= radius_m)
         .min_by(|a, b| a.0.partial_cmp(&b.0).expect("distances are finite"))
         .map(|(_, s)| s)
+}
+
+/// The takeoff-site adoption rule in one place: the nearest cached site
+/// within [`RESOLVE_RADIUS_M`], used by both ingest and [`backfill_missing`].
+/// Callers store the result with `site_source = SITE_SOURCE_OSM`.
+pub fn resolve_takeoff(lat: f64, lon: f64, sites: &[TakeoffSite]) -> Option<&TakeoffSite> {
+    nearest_site(lat, lon, RESOLVE_RADIUS_M, sites)
 }
 
 // ---------------------------------------------------------------------------
@@ -387,10 +404,11 @@ pub async fn backfill_missing(pool: &SqlitePool, force_refresh: bool) -> Result<
         let lat: Option<f64> = r.try_get("takeoff_lat").unwrap_or(None);
         let lon: Option<f64> = r.try_get("takeoff_lon").unwrap_or(None);
         match (lat, lon) {
-            (Some(lat), Some(lon)) => match nearest_site(lat, lon, RESOLVE_RADIUS_M, &sites) {
+            (Some(lat), Some(lon)) => match resolve_takeoff(lat, lon, &sites) {
                 Some(s) => {
-                    sqlx::query("UPDATE flights SET site = ?, site_source = 'osm' WHERE id = ?")
+                    sqlx::query("UPDATE flights SET site = ?, site_source = ? WHERE id = ?")
                         .bind(&s.name)
+                        .bind(SITE_SOURCE_OSM)
                         .bind(&id)
                         .execute(pool)
                         .await?;
